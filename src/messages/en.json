@@ -1,0 +1,62 @@
+{
+  "common": {
+    "language": "English",
+    "langCode": "en"
+  },
+  "navigation": {
+    "home": "Home",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "FarmScan",
+    "subtitle": "Precision Agriculture at Your Fingertips",
+    "currentStatus": "Current Field Status",
+    "healthScore": "Field Health Score",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "moisture": "Soil Moisture",
+    "chooseService": "Choose Service",
+    "scanLeaf": "Scan Leaf",
+    "scanLeafDesc": "Instant AI disease detection • Works without internet",
+    "scanField": "Scan Field",
+    "scanFieldDesc": "Satellite analysis • Real-time heatmap",
+    "offline": "Offline",
+    "online": "Online",
+    "lastUpdated": "Last updated"
+  },
+  "scanner": {
+    "title": "Disease Scanner",
+    "subtitle": "Position crop leaf in frame",
+    "capture": "Capture",
+    "retry": "Retry",
+    "analyzing": "Analyzing...",
+    "processing": "Processing image...",
+    "noCamera": "Camera not available"
+  },
+  "results": {
+    "disease": "Disease Detected",
+    "confidence": "Confidence Score",
+    "treatment": "Recommended Treatment",
+    "severity": "Severity",
+    "viewReport": "View Full Report",
+    "scanAgain": "Scan Again",
+    "healthy": "Your crop appears healthy!",
+    "healthyMsg": "Continue monitoring for best results"
+  },
+  "treatment": {
+    "earlyblight": "Early Blight • Common fungal disease caused by fungus. Appears as dark spots on older leaves.",
+    "powderymildew": "Powdery Mildew • White fungal coating on leaves and stems.",
+    "lateblight": "Late Blight • Serious fungal disease causing rapid crop failure.",
+    "leafspot": "Leaf Spot • Various fungal diseases affecting leaf tissue."
+  },
+  "sateliteAnalysis": {
+    "title": "Field Analysis",
+    "ndviIndex": "NDVI Index",
+    "fieldHealth": "Field Health",
+    "stressLevel": "Stress Level",
+    "irrigationNeeds": "Irrigation Needs",
+    "viewReport": "View Report",
+    "getAdvice": "Get Advice"
+  }
+}

@@ -1,0 +1,90 @@
+import { createClient } from "@/lib/supabase/server";
+import { getIndexRaster } from "@/lib/sentinel/process";
+import { NDVI_EVALSCRIPT, NDWI_EVALSCRIPT, EVI_EVALSCRIPT, TRUE_COLOR_EVALSCRIPT, FALSE_COLOR_EVALSCRIPT } from "@/lib/sentinel/evalscripts";
+import { NextResponse } from "next/server";
+
+const EVALSCRIPTS: Record<string, string> = {
+    ndvi: NDVI_EVALSCRIPT,
+    ndwi: NDWI_EVALSCRIPT,
+    evi: EVI_EVALSCRIPT,
+    true_color: TRUE_COLOR_EVALSCRIPT,
+    false_color: FALSE_COLOR_EVALSCRIPT,
+};
+
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ fieldId: string }> }
+) {
+    const { fieldId } = await params;
+
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data: field } = await supabase
+        .from("fields")
+        .select("geometry")
+        .eq("id", fieldId)
+        .single();
+
+    if (!field) {
+        return NextResponse.json({ error: "Field not found" }, { status: 404 });
+    }
+
+    const url = new URL(request.url);
+    const index = url.searchParams.get("index") || "ndvi";
+    const date = url.searchParams.get("date"); // YYYY-MM-DD
+
+    if (!date) {
+        return NextResponse.json({ error: "Date is required" }, { status: 400 });
+    }
+
+    const evalscript = EVALSCRIPTS[index];
+    if (!evalscript) {
+        return NextResponse.json({ error: "Invalid index type" }, { status: 400 });
+    }
+
+    const fileName = `${fieldId}/${date}/${index}.png`;
+
+    try {
+        // FETCH IMAGE
+        const imageBuffer = await getIndexRaster({
+            geometry: field.geometry,
+            date,
+            evalscript
+        });
+
+        // UPLOAD
+        const { error: uploadError } = await supabase
+            .storage
+            .from("field-maps")
+            .upload(fileName, Buffer.from(imageBuffer), {
+                contentType: "image/png",
+                upsert: true
+            });
+
+        if (uploadError) {
+            console.error("Upload error detail:", uploadError);
+            throw uploadError;
+        }
+
+        // GET URL
+        const { data: urlData } = await supabase
+            .storage
+            .from("field-maps")
+            .createSignedUrl(fileName, 3600); // 1 hour
+
+        return NextResponse.json({
+            url: urlData?.signedUrl,
+            fileName,
+            generatedAt: new Date().toISOString()
+        });
+
+    } catch (err: any) {
+        console.error("Map Generation Error:", err);
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}

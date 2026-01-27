@@ -1,0 +1,223 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #059669;
+  --color-primary-light: #ecfdf5;
+  --color-primary-dark: #047857;
+  --color-secondary: #ea580c;
+  --color-secondary-light: #fed7aa;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+  --color-background: #ffffff;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+
+  --font-inter: var(--font-inter), ui-sans-serif, system-ui;
+  --font-devanagari: var(--font-devanagari), sans-serif;
+  
+  /* New design system shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+  }
+}
+
+@layer base {
+  /* Global typography */
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply font-sans text-base bg-white text-gray-900;
+    line-height: 1.6;
+  }
+
+  /* Font family utilities */
+  .font-sans {
+    font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  .font-devanagari {
+    font-family: var(--font-devanagari), 'Noto Sans Devanagari', sans-serif;
+  }
+
+  /* Heading styles */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+
+  /* Links */
+  a {
+    @apply transition-colors duration-200;
+  }
+
+  /* Button reset */
+  button {
+    @apply transition-all duration-200;
+  }
+
+  /* Focus states for accessibility */
+  button:focus-visible,
+  a:focus-visible {
+    @apply outline-none ring-2 ring-offset-2 ring-emerald-600;
+  }
+}
+
+@layer components {
+  /* Primary button */
+  .btn-primary {
+    @apply px-4 py-2 md:px-6 md:py-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition-colors min-h-[44px] md:min-h-[48px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply px-4 py-2 md:px-6 md:py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition-colors min-h-[44px] md:min-h-[48px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Outline button */
+  .btn-outline {
+    @apply px-4 py-2 md:px-6 md:py-3 border-2 border-emerald-600 text-emerald-600 font-semibold rounded-lg hover:bg-emerald-50 transition-colors min-h-[44px] md:min-h-[48px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Card component */
+  .card {
+    @apply bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .card-lg {
+    @apply bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow;
+  }
+
+  /* Badge component */
+  .badge-base {
+    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold;
+  }
+
+  .badge-primary {
+    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700;
+  }
+
+  .badge-secondary {
+    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 text-amber-700;
+  }
+
+  .badge-success {
+    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-700;
+  }
+
+  .badge-warning {
+    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-700;
+  }
+
+  .badge-danger {
+    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-700;
+  }
+
+  /* Input field */
+  .input {
+    @apply w-full px-4 py-2 md:py-3 border-2 border-gray-300 rounded-lg text-base transition-colors focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 min-h-[44px] md:min-h-[48px];
+  }
+
+  /* Touch target (44x44px minimum) */
+  .touch-target {
+    @apply min-w-[44px] min-h-[44px] md:min-w-[48px] md:min-h-[48px];
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+
+  /* Grid container for responsive layout */
+  .grid-responsive {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
+  }
+
+  /* Section container */
+  .section {
+    @apply py-8 md:py-12 px-4 md:px-6;
+  }
+
+  .section-container {
+    @apply max-w-7xl mx-auto;
+  }
+}
+
+@layer utilities {
+  /* Gradient background */
+  .bg-gradient-agri {
+    @apply bg-gradient-to-br from-emerald-50 via-white to-amber-50;
+  }
+
+  /* Accessibility utilities */
+  /* .sr-only is provided by default in Tailwind */
+
+  /* Responsive spacing */
+  .spacing-mobile {
+    @apply p-4 md:p-6 lg:p-8;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: more) {
+    .card {
+      @apply border-2;
+    }
+    
+    .btn-primary {
+      @apply border-2 border-emerald-700;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+input, textarea, select {
+  transition: all 0.2s ease;
+}
+
+/* Print styles */
+@media print {
+  body {
+    @apply bg-white;
+  }
+
+  .no-print {
+    @apply hidden;
+  }
+}
