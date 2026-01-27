@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getIndexRaster } from "@/lib/sentinel/process";
-import { NDVI_EVALSCRIPT, NDWI_EVALSCRIPT, EVI_EVALSCRIPT, TRUE_COLOR_EVALSCRIPT, FALSE_COLOR_EVALSCRIPT } from "@/lib/sentinel/evalscripts";
+import { NDVI_EVALSCRIPT, NDWI_EVALSCRIPT, EVI_EVALSCRIPT, TRUE_COLOR_EVALSCRIPT, FALSE_COLOR_EVALSCRIPT, NDMI_EVALSCRIPT, NDRE_EVALSCRIPT } from "@/lib/sentinel/evalscripts";
+import { ARVI_EVALSCRIPT, MCARI_EVALSCRIPT, PSRI_EVALSCRIPT } from "@/lib/sentinel/evalscripts-advanced";
 import { NextResponse } from "next/server";
 
 const EVALSCRIPTS: Record<string, string> = {
@@ -9,6 +10,11 @@ const EVALSCRIPTS: Record<string, string> = {
     evi: EVI_EVALSCRIPT,
     true_color: TRUE_COLOR_EVALSCRIPT,
     false_color: FALSE_COLOR_EVALSCRIPT,
+    ndmi: NDMI_EVALSCRIPT,
+    ndre: NDRE_EVALSCRIPT,
+    arvi: ARVI_EVALSCRIPT,
+    mcari: MCARI_EVALSCRIPT,
+    psri: PSRI_EVALSCRIPT,
 };
 
 export async function GET(

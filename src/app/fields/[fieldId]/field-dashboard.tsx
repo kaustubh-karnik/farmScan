@@ -19,6 +19,11 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
     const [mapLoading, setMapLoading] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string>("");
     const [mapBounds, setMapBounds] = useState<any>(null);
+    const [selectedIndex, setSelectedIndex] = useState<string>("ndvi");
+    const [terrainData, setTerrainData] = useState<any>(null);
+    const [sarData, setSarData] = useState<any>(null);
+    const [terrainLoading, setTerrainLoading] = useState(true);
+    const [terrainError, setTerrainError] = useState<string | null>(null);
 
     // Set initial selected date to latest reading
     useEffect(() => {
@@ -28,6 +33,52 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
         }
     }, [readings]);
 
+    // Fetch terrain analysis (once on mount)
+    useEffect(() => {
+        async function fetchTerrain() {
+            setTerrainLoading(true);
+            setTerrainError(null);
+            try {
+                console.log("Fetching terrain data for field:", fieldId);
+                const res = await fetch(`/api/fields/${fieldId}/terrain`);
+                console.log("Terrain API response status:", res.status);
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log("Terrain data received:", data);
+                    setTerrainData(data);
+                } else {
+                    const error = await res.json();
+                    console.error("Terrain API error:", res.status, error);
+                    setTerrainError(error.error || `HTTP ${res.status}`);
+                }
+            } catch (e) {
+                console.error("Terrain data fetch failed:", e);
+                setTerrainError(e instanceof Error ? e.message : "Network error");
+            } finally {
+                setTerrainLoading(false);
+            }
+        }
+        fetchTerrain();
+    }, [fieldId]);
+
+    // Fetch SAR moisture data when date changes
+    useEffect(() => {
+        if (!selectedDate) return;
+
+        async function fetchSAR() {
+            try {
+                const res = await fetch(`/api/fields/${fieldId}/sar-moisture?date=${selectedDate}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSarData(data);
+                }
+            } catch (e) {
+                console.error("SAR data unavailable", e);
+            }
+        }
+        fetchSAR();
+    }, [fieldId, selectedDate]);
+
     // Fetch map when date changes
     useEffect(() => {
         if (!selectedDate) return;
@@ -35,7 +86,7 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
         async function fetchMap() {
             setMapLoading(true);
             try {
-                const res = await fetch(`/api/fields/${fieldId}/map?date=${selectedDate}&index=ndvi`);
+                const res = await fetch(`/api/fields/${fieldId}/map?date=${selectedDate}&index=${selectedIndex}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.url) {
@@ -60,7 +111,7 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
         }
 
         fetchMap();
-    }, [fieldId, selectedDate]);
+    }, [fieldId, selectedDate, selectedIndex]);
 
     // Prepare chart data
     const chartData = readings.map(r => ({
@@ -114,6 +165,105 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                         <MapPin className="w-4 h-4" />
                         <span>{centerLat.toFixed(4)}° N, {centerLng.toFixed(4)}° E</span>
+                    </div>
+                </div>
+
+                {/* Index Selector */}
+                <div className="bg-white rounded-xl shadow-md p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="font-bold text-gray-800">Select Index</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            onClick={() => setSelectedIndex("ndvi")}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                selectedIndex === "ndvi"
+                                    ? "bg-green-600 text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                        >
+                            🌱 NDVI
+                        </button>
+                        <button
+                            onClick={() => setSelectedIndex("ndmi")}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                selectedIndex === "ndmi"
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                        >
+                            💧 NDMI
+                        </button>
+                        <button
+                            onClick={() => setSelectedIndex("ndre")}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                selectedIndex === "ndre"
+                                    ? "bg-orange-600 text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                        >
+                            🍃 NDRE
+                        </button>
+                        <button
+                            onClick={() => setSelectedIndex("ndwi")}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                selectedIndex === "ndwi"
+                                    ? "bg-cyan-600 text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                        >
+                            🌊 NDWI
+                        </button>
+                        <button
+                            onClick={() => setSelectedIndex("evi")}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                selectedIndex === "evi"
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                        >
+                            🌿 EVI
+                        </button>
+                        <button
+                            onClick={() => setSelectedIndex("arvi")}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                selectedIndex === "arvi"
+                                    ? "bg-purple-600 text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                        >
+                            🔬 ARVI
+                        </button>
+                        <button
+                            onClick={() => setSelectedIndex("mcari")}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                selectedIndex === "mcari"
+                                    ? "bg-pink-600 text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                        >
+                            🧬 MCARI
+                        </button>
+                        <button
+                            onClick={() => setSelectedIndex("psri")}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                selectedIndex === "psri"
+                                    ? "bg-amber-600 text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                        >
+                            🍂 PSRI
+                        </button>
+                    </div>
+                    <div className="mt-3 text-xs text-gray-600">
+                        {selectedIndex === "ndvi" && "Vegetation health and vigor"}
+                        {selectedIndex === "ndmi" && "Water stress & moisture content"}
+                        {selectedIndex === "ndre" && "Early stress detection (sensitive)"}
+                        {selectedIndex === "ndwi" && "Water & moisture detection"}
+                        {selectedIndex === "evi" && "Enhanced vegetation (atmospheric corrected)"}
+                        {selectedIndex === "arvi" && "Disease detection (atmospheric resistant)"}
+                        {selectedIndex === "mcari" && "Chlorophyll/disease stress (research-grade)"}
+                        {selectedIndex === "psri" && "Nutrient stress & plant aging"}
                     </div>
                 </div>
 
@@ -226,6 +376,97 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                             Get Advice
                         </button>
                     </div>
+                </div>
+
+                {/* Advanced Context Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Terrain Risk Card */}
+                    {terrainData ? (
+                        <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-purple-500">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="text-2xl">🏔️</span>
+                                <h3 className="font-bold text-gray-800">Terrain Analysis</h3>
+                            </div>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Elevation:</span>
+                                    <span className="font-semibold">{terrainData.elevation.min}m - {terrainData.elevation.max}m</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Slope:</span>
+                                    <span className="font-semibold">{terrainData.slope.mean}°</span>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 mt-3">
+                                    <div className={`text-center p-2 rounded ${terrainData.risks.waterlogging === 'high' ? 'bg-red-100 text-red-700' : terrainData.risks.waterlogging === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                        <div className="text-xs font-semibold">Waterlog</div>
+                                        <div className="text-xs">{terrainData.risks.waterlogging}</div>
+                                    </div>
+                                    <div className={`text-center p-2 rounded ${terrainData.risks.runoff === 'high' ? 'bg-red-100 text-red-700' : terrainData.risks.runoff === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                        <div className="text-xs font-semibold">Runoff</div>
+                                        <div className="text-xs">{terrainData.risks.runoff}</div>
+                                    </div>
+                                    <div className={`text-center p-2 rounded ${terrainData.risks.erosion === 'high' ? 'bg-red-100 text-red-700' : terrainData.risks.erosion === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                        <div className="text-xs font-semibold">Erosion</div>
+                                        <div className="text-xs">{terrainData.risks.erosion}</div>
+                                    </div>
+                                </div>
+                                {terrainData.recommendations.length > 0 && (
+                                    <div className="mt-3 p-2 bg-purple-50 rounded text-xs text-gray-700">
+                                        💡 {terrainData.recommendations[0]}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : terrainLoading ? (
+                        <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-gray-300">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="text-2xl">🏔️</span>
+                                <h3 className="font-bold text-gray-800">Terrain Analysis</h3>
+                            </div>
+                            <div className="flex items-center justify-center py-8 text-gray-500">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                            </div>
+                        </div>
+                    ) : terrainError ? (
+                        <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-red-500">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="text-2xl">🏔️</span>
+                                <h3 className="font-bold text-gray-800">Terrain Analysis</h3>
+                            </div>
+                            <div className="text-sm text-red-600 p-3 bg-red-50 rounded">
+                                <div className="font-semibold mb-1">⚠️ Data Unavailable</div>
+                                <div className="text-xs">{terrainError}</div>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {/* SAR Moisture Card */}
+                    {sarData && (
+                        <div className="bg-white rounded-xl shadow-md p-4 border-l-4 border-cyan-500">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="text-2xl">📡</span>
+                                <h3 className="font-bold text-gray-800">Radar Monitoring</h3>
+                            </div>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-600">Status:</span>
+                                    <span className={`font-semibold px-2 py-1 rounded ${sarData.moistureLevel === 'wet' ? 'bg-blue-100 text-blue-700' : sarData.moistureLevel === 'dry' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                        {sarData.moistureLevel.toUpperCase()}
+                                    </span>
+                                </div>
+                                <div className="text-xs text-gray-600 mt-2">
+                                    {sarData.message}
+                                </div>
+                                <div className="mt-3 space-y-1">
+                                    {sarData.advantages.map((adv: string, i: number) => (
+                                        <div key={i} className="text-xs text-gray-600 flex items-start gap-1">
+                                            <span>{adv}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* NDVI Chart */}
