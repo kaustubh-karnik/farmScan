@@ -18,6 +18,7 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
     const [mapUrl, setMapUrl] = useState<string | null>(null);
     const [mapLoading, setMapLoading] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string>("");
+    const [mapBounds, setMapBounds] = useState<any>(null);
 
     // Set initial selected date to latest reading
     useEffect(() => {
@@ -37,10 +38,22 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                 const res = await fetch(`/api/fields/${fieldId}/map?date=${selectedDate}&index=ndvi`);
                 if (res.ok) {
                     const data = await res.json();
-                    setMapUrl(`${data.url}&t=${new Date().getTime()}`);
+                    if (data.url) {
+                        setMapUrl(`${data.url}&t=${new Date().getTime()}`);
+                        setMapBounds(data.bounds);
+                        console.log(`Map loaded for date ${selectedDate}:`, data.fileName);
+                    } else {
+                        console.error(`Map URL missing for date ${selectedDate}:`, data);
+                        setMapUrl(null);
+                    }
+                } else {
+                    const errorData = await res.json();
+                    console.error(`Failed to load map for date ${selectedDate}:`, res.status, errorData);
+                    setMapUrl(null);
                 }
             } catch (e) {
-                console.error("Failed to load map", e);
+                console.error(`Failed to load map for date ${selectedDate}:`, e);
+                setMapUrl(null);
             } finally {
                 setMapLoading(false);
             }
@@ -147,14 +160,28 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                         ) : mapUrl ? (
                             <>
                                 <img src={mapUrl} alt="Field Sentinel Map" className="w-full h-full object-cover" />
-                                {/* Location Pin */}
-                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                    <div className="relative">
-                                        <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                                            <MapPin className="w-6 h-6 text-white" />
-                                        </div>
-                                        <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
-                                    </div>
+                                {/* Field Boundary Overlay */}
+                                {mapBounds && (
+                                    <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                        <polygon 
+                                            points={polygon.map((p) => {
+                                                // Map field coordinates to the expanded bounds
+                                                const x = ((p[1] - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * 100;
+                                                const y = ((mapBounds.maxLat - p[0]) / (mapBounds.maxLat - mapBounds.minLat)) * 100;
+                                                return `${x},${y}`;
+                                            }).join(' ')}
+                                            fill="none"
+                                            stroke="#3b82f6"
+                                            strokeWidth="0.8"
+                                            strokeDasharray="3,2"
+                                            opacity="1"
+                                        />
+                                    </svg>
+                                )}
+                                {/* Legend for boundary */}
+                                <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                                    <div className="w-4 h-0.5 border-t-2 border-dashed border-blue-400"></div>
+                                    <span>Field Boundary</span>
                                 </div>
                             </>
                         ) : (

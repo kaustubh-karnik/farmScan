@@ -50,9 +50,41 @@ export async function GET(
     const fileName = `${fieldId}/${date}/${index}.png`;
 
     try {
-        // FETCH IMAGE
+        // Calculate expanded bounding box (2x zoom out to show context)
+        const coords = field.geometry.coordinates[0];
+        let minLng = 180, minLat = 90, maxLng = -180, maxLat = -90;
+        
+        for (const [lng, lat] of coords) {
+            if (lng < minLng) minLng = lng;
+            if (lng > maxLng) maxLng = lng;
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+        }
+        
+        // Expand bounds by 100% (2x zoom out)
+        const lngPadding = (maxLng - minLng) * 1.0;
+        const latPadding = (maxLat - minLat) * 1.0;
+        
+        const expandedMinLng = minLng - lngPadding;
+        const expandedMaxLng = maxLng + lngPadding;
+        const expandedMinLat = minLat - latPadding;
+        const expandedMaxLat = maxLat + latPadding;
+        
+        // Create expanded bounding box polygon
+        const expandedGeometry: GeoJSON.Polygon = {
+            type: "Polygon",
+            coordinates: [[
+                [expandedMinLng, expandedMinLat],
+                [expandedMaxLng, expandedMinLat],
+                [expandedMaxLng, expandedMaxLat],
+                [expandedMinLng, expandedMaxLat],
+                [expandedMinLng, expandedMinLat]
+            ]]
+        };
+
+        // FETCH IMAGE with expanded view
         const imageBuffer = await getIndexRaster({
-            geometry: field.geometry,
+            geometry: expandedGeometry,
             date,
             evalscript
         });
@@ -72,15 +104,27 @@ export async function GET(
         }
 
         // GET URL
-        const { data: urlData } = await supabase
+        const { data: urlData, error: urlError } = await supabase
             .storage
             .from("field-maps")
             .createSignedUrl(fileName, 3600); // 1 hour
 
+        if (urlError || !urlData?.signedUrl) {
+            console.error("URL generation error:", urlError);
+            throw new Error("Failed to generate signed URL");
+        }
+
         return NextResponse.json({
-            url: urlData?.signedUrl,
+            url: urlData.signedUrl,
             fileName,
-            generatedAt: new Date().toISOString()
+            generatedAt: new Date().toISOString(),
+            bounds: {
+                minLng: expandedMinLng,
+                maxLng: expandedMaxLng,
+                minLat: expandedMinLat,
+                maxLat: expandedMaxLat
+            },
+            fieldCoordinates: coords
         });
 
     } catch (err: any) {

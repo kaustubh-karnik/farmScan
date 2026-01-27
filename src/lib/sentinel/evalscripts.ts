@@ -14,11 +14,18 @@ function setup() {
 }
 
 function evaluatePixel(sample) {
+  // Filter out invalid pixels (clouds, shadows, water, snow, etc.)
+  // SCL: 0=No Data, 1=Saturated, 3=Cloud Shadow, 8=Cloud Medium, 9=Cloud High, 11=Snow/Ice
   if ([0, 1, 3, 8, 9, 11].includes(sample.SCL)) {
-      return [0, 0, 0]; // Black/Transparent for clouds
+      return [0.3, 0.3, 0.3]; // Gray for masked areas instead of pure black
   }
 
   const NDVI = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  
+  // Handle invalid NDVI values
+  if (isNaN(NDVI) || !isFinite(NDVI)) {
+      return [0.3, 0.3, 0.3];
+  }
   
   // Smooth Gradient:
   // < 0.2: Red [0.8, 0, 0]

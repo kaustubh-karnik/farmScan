@@ -10,11 +10,14 @@ export async function getIndexRaster(args: {
 }): Promise<ArrayBuffer> {
     const token = await getSentinelToken();
 
-    // Format date interval for single day or specific range
+    // Format date interval with ±3 days buffer to find best available image
     // Process API expects time range as object with from/to ISO strings
-    const fromDate = new Date(args.date);
+    const targetDate = new Date(args.date);
+    const fromDate = new Date(targetDate);
+    fromDate.setDate(fromDate.getDate() - 3);
     fromDate.setUTCHours(0, 0, 0, 0);
-    const toDate = new Date(args.date);
+    const toDate = new Date(targetDate);
+    toDate.setDate(toDate.getDate() + 3);
     toDate.setUTCHours(23, 59, 59, 0);
 
     // Calculate BBox for Aspect Ratio
@@ -50,7 +53,9 @@ export async function getIndexRaster(args: {
                     timeRange: {
                         from: fromDate.toISOString().split('.')[0] + 'Z',
                         to: toDate.toISOString().split('.')[0] + 'Z'
-                    }
+                    },
+                    maxCloudCoverage: SENTINEL_CONFIG.MAX_CLOUD_COVER,
+                    mosaickingOrder: "leastCC" // Use least cloudy image in the time range
                 },
                 processing: {
                     upsampling: "BICUBIC",
@@ -84,8 +89,16 @@ export async function getIndexRaster(args: {
     });
 
     if (!response.ok) {
-        throw new Error(`Process API Error: ${response.status} ${await response.text()}`);
+        const errorText = await response.text();
+        throw new Error(`Process API Error: ${response.status} ${errorText}`);
     }
 
-    return await response.arrayBuffer();
+    const imageBuffer = await response.arrayBuffer();
+    
+    // Check if image is too small or potentially empty (all black/no data)
+    if (imageBuffer.byteLength < 100) {
+        throw new Error("No valid satellite imagery available for this date. Try a different date or the field may be obscured by clouds.");
+    }
+
+    return imageBuffer;
 }
