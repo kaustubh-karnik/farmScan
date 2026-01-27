@@ -67,9 +67,9 @@ export async function GET(
             if (lat > maxLat) maxLat = lat;
         }
         
-        // Expand bounds by 100% (2x zoom out)
-        const lngPadding = (maxLng - minLng) * 1.0;
-        const latPadding = (maxLat - minLat) * 1.0;
+        // Expand bounds by 300% (4x zoom out for larger context)
+        const lngPadding = (maxLng - minLng) * 3.0;
+        const latPadding = (maxLat - minLat) * 3.0;
         
         const expandedMinLng = minLng - lngPadding;
         const expandedMaxLng = maxLng + lngPadding;

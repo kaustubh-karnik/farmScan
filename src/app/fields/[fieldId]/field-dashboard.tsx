@@ -309,10 +309,28 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                             </div>
                         ) : mapUrl ? (
                             <>
-                                <img src={mapUrl} alt="Field Sentinel Map" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 overflow-hidden">
+                                    <img 
+                                        src={mapUrl} 
+                                        alt="Field Sentinel Map" 
+                                        className="w-full h-full object-cover"
+                                        style={{
+                                            transform: 'scale(3)',
+                                            transformOrigin: 'center center'
+                                        }}
+                                    />
+                                </div>
                                 {/* Field Boundary Overlay */}
                                 {mapBounds && (
-                                    <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <svg 
+                                        className="absolute inset-0 w-full h-full pointer-events-none" 
+                                        viewBox="0 0 100 100" 
+                                        preserveAspectRatio="none"
+                                        style={{
+                                            transform: 'scale(3)',
+                                            transformOrigin: 'center center'
+                                        }}
+                                    >
                                         <polygon 
                                             points={polygon.map((p) => {
                                                 // Map field coordinates to the expanded bounds
@@ -322,8 +340,8 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                                             }).join(' ')}
                                             fill="none"
                                             stroke="#3b82f6"
-                                            strokeWidth="0.8"
-                                            strokeDasharray="3,2"
+                                            strokeWidth="0.5"
+                                            strokeDasharray="2,1.5"
                                             opacity="1"
                                         />
                                     </svg>
