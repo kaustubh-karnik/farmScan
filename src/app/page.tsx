@@ -1,11 +1,15 @@
 'use client';
 
 import Link from "next/link";
-import { Sun, Droplets, Wind } from "lucide-react";
-import { useState } from "react";
+import Image from "next/image";
+import { Sun, Droplets, Wind, Camera, Satellite, AlertTriangle, Volume2, Home as HomeIcon, TrendingUp, Settings, Leaf, Sparkles, MapPin, ChevronRight, Search, Cloud, Eye, Gauge, SlidersHorizontal, Loader2, CloudRain, CloudSnow, CloudDrizzle, CloudFog } from "lucide-react";
+import { useState, useEffect } from "react";
 import { DiseaseScanner } from "@/components/DiseaseScanner";
 import { useI18n } from "@/contexts/I18nContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface ScanResult {
   disease: string;
@@ -14,9 +18,26 @@ interface ScanResult {
   severity: 'low' | 'medium' | 'high';
 }
 
+interface WeatherData {
+  temp: number;
+  feelsLike: number;
+  humidity: number;
+  windSpeed: number;
+  visibility: number;
+  pressure: number;
+  description: string;
+  icon: string;
+  sunrise: number;
+  sunset: number;
+  city: string;
+}
+
 export default function Home() {
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
   const { t } = useI18n();
 
   const handleScanResult = (result: ScanResult) => {
@@ -24,197 +45,423 @@ export default function Home() {
     setShowScanner(false);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-4 shadow-lg">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <span className="text-2xl">🌾</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">{t("dashboard.title", "FarmScan")}</h1>
-              <p className="text-xs sm:text-sm text-emerald-100">
-                {t("dashboard.subtitle", "Precision farming for every farmer")}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <LanguageSwitcher />
-          </div>
-        </div>
-      </div>
+  // Get current date
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'short', 
+    year: 'numeric' 
+  });
 
-      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* Weather Widget */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
+  // Fetch weather data
+  useEffect(() => {
+    const setDemoWeatherData = () => {
+      const now = new Date();
+      const sunriseTime = new Date(now);
+      sunriseTime.setHours(6, 30, 0);
+      const sunsetTime = new Date(now);
+      sunsetTime.setHours(18, 45, 0);
+      
+      setWeatherData({
+        temp: 28,
+        feelsLike: 26,
+        humidity: 65,
+        windSpeed: 12,
+        visibility: 10,
+        pressure: 30.2,
+        description: 'partly cloudy',
+        icon: '02d',
+        sunrise: sunriseTime.getTime() / 1000,
+        sunset: sunsetTime.getTime() / 1000,
+        city: 'Pune',
+      });
+      setWeatherError('API key not configured');
+      setWeatherLoading(false);
+    };
+
+    const fetchWeather = async () => {
+      // Check if API key is configured
+      const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+      
+      if (!API_KEY || API_KEY === 'demo') {
+        console.info('ℹ️ OpenWeatherMap API key not configured. Using demo weather data.');
+        setDemoWeatherData();
+        return;
+      }
+
+      try {
+        setWeatherLoading(true);
+        setWeatherError(null);
+
+        // Get user's location
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error('Geolocation is not supported'));
+            return;
+          }
+          navigator.geolocation.getCurrentPosition(
+            resolve, 
+            reject,
+            { timeout: 10000 }
+          );
+        });
+
+        const { latitude, longitude } = position.coords;
+
+        // Fetch weather data from OpenWeatherMap API
+        const response = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          
+          if (response.status === 401) {
+            console.error('❌ OpenWeatherMap API: 401 Unauthorized');
+            console.error('→ Your API key might not be activated yet (takes 10-15 min)');
+            console.error('→ Or the API key is invalid. Check: https://home.openweathermap.org/api_keys');
+            throw new Error('API key unauthorized - check if activated');
+          }
+          
+          const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+
+        setWeatherData({
+          temp: Math.round(data.main.temp),
+          feelsLike: Math.round(data.main.feels_like),
+          humidity: data.main.humidity,
+          windSpeed: Math.round(data.wind.speed * 3.6), // Convert m/s to km/h
+          visibility: Math.round(data.visibility / 1609), // Convert meters to miles
+          pressure: Math.round(data.main.pressure / 33.864), // Convert hPa to inHg
+          description: data.weather[0].description,
+          icon: data.weather[0].icon,
+          sunrise: data.sys.sunrise,
+          sunset: data.sys.sunset,
+          city: data.name,
+        });
+        setWeatherError(null);
+      } catch (error) {
+        console.error('Weather fetch error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch weather';
+        setDemoWeatherData();
+      } finally {
+        setWeatherLoading(false);
+      }
+    };
+
+    fetchWeather();
+  }, []);
+
+  // Get weather icon component based on icon code
+  const getWeatherIcon = (iconCode: string) => {
+    if (iconCode.includes('01')) return <Sun className="w-7 h-7 text-white" strokeWidth={2} />;
+    if (iconCode.includes('02') || iconCode.includes('03') || iconCode.includes('04')) 
+      return <Cloud className="w-7 h-7 text-white" strokeWidth={2} />;
+    if (iconCode.includes('09') || iconCode.includes('10')) 
+      return <CloudRain className="w-7 h-7 text-white" strokeWidth={2} />;
+    if (iconCode.includes('11')) 
+      return <AlertTriangle className="w-7 h-7 text-white" strokeWidth={2} />;
+    if (iconCode.includes('13')) 
+      return <CloudSnow className="w-7 h-7 text-white" strokeWidth={2} />;
+    if (iconCode.includes('50')) 
+      return <CloudFog className="w-7 h-7 text-white" strokeWidth={2} />;
+    return <Cloud className="w-7 h-7 text-white" strokeWidth={2} />;
+  };
+
+  // Format time from timestamp
+  const formatTime = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F5F3EE]">
+      {/* Clean Olive Green Header */}
+      <header className="bg-gradient-to-br from-[#6B7B3F] to-[#5A6A35] px-5 pt-4 pb-24 rounded-b-[36px]">
+        <div className="max-w-md mx-auto space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
-                <Sun className="w-8 h-8 text-yellow-500 stroke-[1.5]" strokeWidth={1.5} />
+            <div className="flex items-center gap-2.5">
+              <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                <Leaf className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
               <div>
-                <div className="text-4xl font-bold">32°C</div>
-                <p className="text-gray-600 text-sm">Pune, Maharashtra</p>
+                <p className="text-white text-base font-semibold">Hello, Farmers</p>
+                <p className="text-white/80 text-xs mt-0.5">{currentDate}</p>
               </div>
             </div>
-            <div className="space-y-2 text-right">
-              <div className="flex items-center gap-2 text-sm">
-                <Droplets className="w-4 h-4 text-blue-500 stroke-[2]" strokeWidth={2} />
-                <span className="text-gray-700">60%</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Wind className="w-4 h-4 text-gray-500 stroke-[1.5]" strokeWidth={1.5} />
-                <span className="text-gray-700">12km/h</span>
-              </div>
-            </div>
+            <LanguageSwitcher />
+          </div>
+          
+          {/* Enhanced Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-white/70" strokeWidth={2.5} />
+            <input 
+              type="text"
+              placeholder="Search here..."
+              className="w-full bg-white/15 backdrop-blur-md border border-white/25 rounded-[18px] pl-12 pr-12 py-3.5 text-white placeholder:text-white/50 text-[15px] font-medium focus:outline-none focus:bg-white/20 focus:border-white/40 transition-all"
+            />
+            <button className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-white/30 transition-all">
+              <SlidersHorizontal className="w-4 h-4 text-white" strokeWidth={2.5} />
+            </button>
           </div>
         </div>
+      </header>
 
-        {/* Choose Service Section */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">
-            {t("dashboard.chooseService", "Choose Service")}
-          </h2>
-          
-          {/* Scan Leaf - Offline Service */}
-          <div 
-            onClick={() => setShowScanner(true)}
-            className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-6 mb-4 cursor-pointer hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-3xl">
-                  📷
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">
-                    {t("dashboard.scanLeaf", "Scan Leaf")}
-                  </h3>
-                  <p className="text-emerald-100 text-sm">
-                    {t("dashboard.scanLeafDesc", "Scan crop leaf")}
-                  </p>
-                </div>
+      {/* Main Content Card */}
+      <main className="max-w-md mx-auto px-5 -mt-20 pb-24">
+        <div className="bg-white rounded-3xl shadow-xl shadow-black/5 p-6 space-y-5">
+          {/* Enhanced Weather Card */}
+          <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 rounded-2xl p-5 border border-blue-100/50">
+            {weatherLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
               </div>
-              <div className="bg-emerald-800 bg-opacity-50 px-3 py-1 rounded-full">
-                  <span className="text-white text-xs font-semibold flex items-center gap-1">
-                    ⚡ {t("dashboard.offline", "Offline")}
-                  </span>
-              </div>
-            </div>
-            <p className="text-emerald-50 text-sm">
-              {t(
-                "dashboard.scanLeafDesc",
-                "Instant AI disease detection • Works without internet"
-              )}
-            </p>
-          </div>
-
-          {/* Scan Field - Online Service */}
-          <Link href="/fields">
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 cursor-pointer hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center text-3xl">
-                    🛰️
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">
-                      {t("dashboard.scanField", "Scan Field")}
-                    </h3>
-                    <p className="text-orange-100 text-sm">
-                      {t("dashboard.scanFieldSubtitle", "Scan your field from satellite")}
+            ) : weatherData ? (
+              <>
+                {weatherError && (
+                  <div className="mb-3 px-3 py-2 bg-amber-100 border border-amber-200 rounded-xl">
+                    <p className="text-[10px] text-amber-800 font-medium">
+                      {weatherError.includes('API key') 
+                        ? '⚠️ Using demo data. Add API key for live weather.' 
+                        : '⚠️ Showing demo data. Check connection.'}
                     </p>
                   </div>
-                </div>
-                <div className="bg-orange-700 bg-opacity-50 px-3 py-1 rounded-full">
-                  <span className="text-white text-xs font-semibold flex items-center gap-1">
-                    🌐 {t("dashboard.online", "Online")}
-                  </span>
-                </div>
-              </div>
-              <p className="text-orange-50 text-sm">
-                {t(
-                  "dashboard.scanFieldDesc",
-                  "Satellite analysis • Real-time heatmap"
                 )}
-              </p>
-            </div>
-          </Link>
-        </div>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-400/30">
+                      {getWeatherIcon(weatherData.icon)}
+                    </div>
+                    <div>
+                      <div className="text-3xl font-bold text-slate-900">
+                        {weatherData.temp > 0 ? '+' : ''}{weatherData.temp}°
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-slate-600 font-medium mt-0.5">
+                        <MapPin className="w-3 h-3" strokeWidth={2} />
+                        <span>{weatherData.city}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-slate-900">
+                      {weatherData.feelsLike > 0 ? '+' : ''}{weatherData.feelsLike}°
+                    </div>
+                    <div className="text-xs text-slate-500">Feels like</div>
+                  </div>
+                </div>
 
-        {/* Result Card if scan was done */}
-        {scanResult && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-red-500">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">⚠️</span>
+                {/* Weather Stats Grid */}
+                <div className="grid grid-cols-4 gap-3 mb-4">
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-white/60 backdrop-blur-sm rounded-xl flex items-center justify-center mx-auto mb-1.5">
+                      <Wind className="w-5 h-5 text-slate-600" strokeWidth={2} />
+                    </div>
+                    <div className="text-xs font-bold text-slate-900">{weatherData.windSpeed}</div>
+                    <div className="text-[10px] text-slate-500">km/h</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-white/60 backdrop-blur-sm rounded-xl flex items-center justify-center mx-auto mb-1.5">
+                      <Droplets className="w-5 h-5 text-blue-500" strokeWidth={2} />
+                    </div>
+                    <div className="text-xs font-bold text-slate-900">{weatherData.humidity}%</div>
+                    <div className="text-[10px] text-slate-500">Humidity</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-white/60 backdrop-blur-sm rounded-xl flex items-center justify-center mx-auto mb-1.5">
+                      <Eye className="w-5 h-5 text-slate-600" strokeWidth={2} />
+                    </div>
+                    <div className="text-xs font-bold text-slate-900">{weatherData.visibility} mi</div>
+                    <div className="text-[10px] text-slate-500">Visibility</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-10 h-10 bg-white/60 backdrop-blur-sm rounded-xl flex items-center justify-center mx-auto mb-1.5">
+                      <Gauge className="w-5 h-5 text-slate-600" strokeWidth={2} />
+                    </div>
+                    <div className="text-xs font-bold text-slate-900">{weatherData.pressure.toFixed(1)}</div>
+                    <div className="text-[10px] text-slate-500">inHg</div>
+                  </div>
+                </div>
+
+                {/* Temperature Curve */}
+                <div className="relative h-20 mt-4">
+                  <div className="absolute inset-0 flex items-end justify-between">
+                    <div className="flex-1 text-center">
+                      <div className="text-[10px] text-slate-500 mb-1">{formatTime(weatherData.sunrise)}</div>
+                      <div className="text-xs font-bold text-slate-700">Sunrise</div>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center">
+                      <svg viewBox="0 0 200 60" className="w-full h-16">
+                        <path
+                          d="M 10 50 Q 60 10, 100 20 T 190 50"
+                          fill="none"
+                          stroke="#60a5fa"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        />
+                        <circle cx="100" cy="20" r="4" fill="#fbbf24" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 text-center">
+                      <div className="text-[10px] text-slate-500 mb-1">{formatTime(weatherData.sunset)}</div>
+                      <div className="text-xs font-bold text-slate-700">Sunset</div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-sm text-slate-600">Unable to load weather data</p>
+                {weatherError && (
+                  <p className="text-xs text-slate-500 mt-1">{weatherError}</p>
+                )}
               </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-lg text-gray-800">Disease Detected</h3>
-                <p className="text-sm text-gray-600">रोगाचा शोध लागला</p>
-              </div>
-              <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
-                {scanResult.confidence}%
-              </div>
+            )}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between px-0.5">
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Quick Actions</h3>
+              <span className="text-xs font-medium text-slate-500">2 actions</span>
             </div>
             
-            <div className="bg-red-50 rounded-xl p-4 mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🍅</span>
-                <span className="font-bold text-gray-800">{scanResult.disease}</span>
-              </div>
-              <p className="text-sm text-gray-600">
-                {scanResult.disease === "Early Blight" && 
-                  "Common tomato disease caused by fungus. Appears as dark spots on older leaves."}
-              </p>
-            </div>
+            {/* Primary Action - Scan Leaf */}
+            <button
+              onClick={() => setShowScanner(true)}
+              className="w-full relative bg-gradient-to-br from-[#6B7B3F] to-[#5A6A35] rounded-[22px] p-5 shadow-lg shadow-[#6B7B3F]/20 hover:shadow-xl hover:shadow-[#6B7B3F]/30 transition-all active:scale-[0.98] overflow-hidden group"
+            >
+              {/* Subtle shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+              
+              <div className="relative flex items-center gap-4">
+                {/* Icon Container */}
+                <div className="w-14 h-14 rounded-[18px] bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <Camera className="w-7 h-7 text-white" strokeWidth={2.5} />
+                </div>
 
-            <button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors">
-              <span>🔊</span>
-              Play Treatment Advice
-              <span className="text-sm text-orange-100">उपचार सल्ला ऐका</span>
+                {/* Content */}
+                <div className="flex-1 text-left">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="text-lg font-bold text-white">{t("dashboard.scanLeaf", "Scan Leaf")}</h4>
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400/20 border border-amber-300/30">
+                      <Sparkles className="w-3 h-3 text-amber-200" strokeWidth={2.5} />
+                      <span className="text-[10px] font-bold text-amber-100">AI</span>
+                    </div>
+                  </div>
+                  <p className="text-white/75 text-sm font-medium">{t("dashboard.detectDisease", "Detect disease instantly")}</p>
+                </div>
+
+                {/* Arrow */}
+                <ChevronRight className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" strokeWidth={2.5} />
+              </div>
             </button>
 
-            <div className="flex gap-3 mt-3">
-              <button className="flex-1 py-2 text-gray-700 font-medium text-sm">
-                Save Result
-              </button>
-              <button 
-                onClick={() => setShowScanner(true)}
-                className="flex-1 py-2 text-emerald-600 font-medium text-sm"
-              >
-                Scan Again
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+            {/* Secondary Action - Scan Field */}
+            <Link href="/fields">
+              <div className="w-full relative bg-white border-2 border-slate-200 rounded-[22px] p-5 hover:border-[#6B7B3F]/30 hover:shadow-md hover:shadow-[#6B7B3F]/5 transition-all active:scale-[0.98] group">
+                <div className="flex items-center gap-4">
+                  {/* Icon Container */}
+                  <div className="w-14 h-14 rounded-[18px] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/25 group-hover:scale-105 transition-transform">
+                    <Satellite className="w-7 h-7 text-white" strokeWidth={2.5} />
+                  </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 max-w-md mx-auto">
-        <div className="flex justify-around items-center">
-          <button className="flex flex-col items-center gap-1 text-emerald-600">
-            <span className="text-2xl">🏠</span>
-            <span className="text-xs font-medium">
+                  {/* Content */}
+                  <div className="flex-1 text-left">
+                    <h4 className="text-lg font-bold text-slate-900 mb-1">{t("dashboard.scanField", "Scan Field")}</h4>
+                    <p className="text-slate-600 text-sm font-medium">{t("dashboard.satellite", "Satellite monitoring")}</p>
+                  </div>
+
+                  {/* Arrow */}
+                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-[#6B7B3F] group-hover:translate-x-1 transition-all" strokeWidth={2.5} />
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Result Card */}
+          {scanResult && (
+            <div className="border-2 border-red-200 bg-red-50 rounded-3xl overflow-hidden">
+              <div className="bg-gradient-to-r from-red-500 to-rose-600 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5 text-white" strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-base">Disease Detected</h3>
+                      <p className="text-red-50 text-xs font-medium">रोगाचा शोध लागला</p>
+                    </div>
+                  </div>
+                  <Badge variant="success" className="text-xs px-2.5 py-1">
+                    {Math.round(scanResult.confidence)}%
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="p-4 space-y-3">
+                <div className="bg-white border border-red-200 rounded-2xl p-3">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Leaf className="w-4 h-4 text-red-600" strokeWidth={2.5} />
+                    <h4 className="font-bold text-slate-900 text-sm">{scanResult.disease}</h4>
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    {scanResult.disease === "Early Blight" && 
+                      "Common tomato disease caused by fungus. Appears as dark spots on older leaves."}
+                  </p>
+                </div>
+
+                <button className="w-full bg-amber-500 text-white rounded-2xl p-3 font-bold text-sm flex items-center justify-center gap-2 hover:bg-amber-600 transition-all active:scale-[0.98]">
+                  <Volume2 className="w-4 h-4" strokeWidth={2.5} />
+                  <span>Play Treatment Advice</span>
+                </button>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="border-2 border-slate-300 bg-white text-slate-700 rounded-2xl p-3 font-bold text-sm hover:bg-slate-50 transition-all active:scale-[0.98]">
+                    Save
+                  </button>
+                  <button 
+                    onClick={() => setShowScanner(true)}
+                    className="bg-[#6B7B3F] text-white rounded-2xl p-3 font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#5A6A35] transition-all active:scale-[0.98]"
+                  >
+                    <Camera className="w-4 h-4" strokeWidth={2.5} />
+                    <span>Scan Again</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Bottom Navigation - Olive Theme */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 max-w-md mx-auto">
+        <div className="flex items-center justify-around px-2 py-2.5 safe-area-inset-bottom">
+          <button className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-[#6B7B3F]/10 text-[#6B7B3F] min-w-[72px] transition-all">
+            <HomeIcon className="w-5 h-5" strokeWidth={2.5} />
+            <span className="text-[10px] font-bold">
               {t("navigation.home", "Home")}
             </span>
           </button>
-          <button className="flex flex-col items-center gap-1 text-gray-400">
-            <span className="text-2xl">📊</span>
-            <span className="text-xs font-medium">
+          <button className="flex flex-col items-center gap-1 p-2.5 rounded-xl text-slate-500 hover:bg-slate-50 min-w-[72px] transition-all">
+            <TrendingUp className="w-5 h-5" strokeWidth={2} />
+            <span className="text-[10px] font-medium">
               {t("navigation.history", "History")}
             </span>
           </button>
-          <button className="flex flex-col items-center gap-1 text-gray-400">
-            <span className="text-2xl">⚙️</span>
-            <span className="text-xs font-medium">
+          <button className="flex flex-col items-center gap-1 p-2.5 rounded-xl text-slate-500 hover:bg-slate-50 min-w-[72px] transition-all">
+            <Settings className="w-5 h-5" strokeWidth={2} />
+            <span className="text-[10px] font-medium">
               {t("navigation.settings", "Settings")}
             </span>
           </button>
         </div>
-      </div>
+      </nav>
 
       {/* Disease Scanner Modal */}
       {showScanner && (

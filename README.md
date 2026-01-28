@@ -17,11 +17,21 @@ SH_CLIENT_SECRET=your_client_secret
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
+# OpenWeatherMap API (for live weather data)
+NEXT_PUBLIC_OPENWEATHER_API_KEY=your_openweather_api_key
+
 # Optional Configuration Overrides
 SENTINEL_MAX_CLOUD_COVER=20
 NDVI_DROP_FRACTION=0.15
 MIN_NDVI_THRESHOLD=0.3
 ```
+
+**Get OpenWeatherMap API Key:**
+1. Sign up at [OpenWeatherMap](https://openweathermap.org/api)
+2. Generate a free API key (allows 60 calls/minute)
+3. Add it to your `.env.local` file
+
+> **Note:** Without the OpenWeatherMap API key, the app will display demo weather data.
 
 ### 2. Supabase Setup
 

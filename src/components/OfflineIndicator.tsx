@@ -17,25 +17,15 @@ export function OfflineIndicator() {
     () => true
   );
 
+  // Only show when offline to reduce visual noise
+  if (isOnline) return null;
+
   return (
-    <div
-      className={`fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm z-50 transition-all duration-300 ${
-        isOnline
-          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-          : 'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
-      }`}
-    >
-      {isOnline ? (
-        <>
-          <Wifi className="w-4 h-4" />
-          <span>Online</span>
-        </>
-      ) : (
-        <>
-          <WifiOff className="w-4 h-4" />
-          <span>Offline</span>
-        </>
-      )}
+    <div className="fixed top-[57px] left-0 right-0 z-40 bg-amber-500 border-b border-amber-600">
+      <div className="max-w-md mx-auto flex items-center justify-center gap-1.5 px-4 py-1.5">
+        <WifiOff className="w-3.5 h-3.5 text-white flex-shrink-0" strokeWidth={2.5} />
+        <span className="font-semibold text-[11px] text-white uppercase tracking-wide">Offline Mode</span>
+      </div>
     </div>
   );
 }

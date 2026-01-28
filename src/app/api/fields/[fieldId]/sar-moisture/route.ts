@@ -206,10 +206,10 @@ export async function GET(
                 ? "SAR-based soil moisture map generated. Works even during cloudy conditions!"
                 : "SAR data available but map generation limited. Radar monitoring continues regardless of cloud cover.",
             advantages: [
-                "🛰️ Works through clouds (radar penetrates weather)",
-                "🌙 Day/night monitoring capability",
-                "💧 Detects soil moisture changes quickly",
-                "🌧️ Essential during monsoon season"
+                "Works through clouds (radar penetrates weather)",
+                "Day/night monitoring capability",
+                "Detects soil moisture changes quickly",
+                "Essential during monsoon season"
             ]
         };
 
@@ -226,10 +226,10 @@ export async function GET(
             confidence: "low" as const,
             message: "SAR monitoring available as cloud-independent fallback. Radar-based moisture estimation continues when optical sensors are obscured.",
             advantages: [
-                "🛰️ Works through clouds",
-                "🌙 Day/night monitoring",
-                "💧 Soil moisture detection",
-                "🌧️ Monsoon-ready"
+                "Works through clouds",
+                "Day/night monitoring",
+                "Soil moisture detection",
+                "Monsoon-ready"
             ]
         });
     }

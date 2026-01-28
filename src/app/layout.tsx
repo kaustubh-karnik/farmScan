@@ -45,7 +45,7 @@ export default function RootLayout({
         <I18nProvider>
           <ServiceWorkerRegistration />
           {children}
-          <OfflineIndicator />
+          {/* <OfflineIndicator /> */}
         </I18nProvider>
       </body>
     </html>

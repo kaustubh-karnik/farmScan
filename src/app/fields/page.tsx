@@ -1,6 +1,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { Wheat, Tractor, Plus, TrendingUp, Activity, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 import AnalyzeButton from "./analyze-button"; // Client component for the action
 
@@ -19,69 +23,97 @@ export default async function FieldsPage() {
         .order("created_at", { ascending: false });
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-20">
+        <div className="min-h-screen bg-slate-50 pb-20">
             {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-6 py-4 shadow-lg mb-6">
-                <div className="flex items-center justify-between mb-2">
-                    <h1 className="text-2xl font-bold text-white">My Fields</h1>
-                    <Link href="/fields/new" className="bg-white text-emerald-700 px-4 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-emerald-50 transition-colors">
-                        + Add Field
-                    </Link>
+            <header className="bg-white border-b border-slate-200/60 sticky top-0 z-40">
+                <div className="max-w-4xl mx-auto px-5 py-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-lg font-semibold text-slate-900 tracking-tight">My Fields</h1>
+                            <p className="text-xs text-slate-600 font-medium mt-0.5">माझे शेत</p>
+                        </div>
+                        <Link href="/fields/new">
+                            <Button size="default">
+                                <Plus className="w-4 h-4" strokeWidth={2.5} />
+                                <span>Add Field</span>
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
-                <p className="text-emerald-100 text-sm">माझे शेत</p>
-            </div>
+            </header>
 
-            <div className="max-w-4xl mx-auto px-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <main className="max-w-4xl mx-auto px-5 py-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {fields?.map((field) => {
                         // Get latest reading
                         const latestReading = field.vegetation_readings?.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())?.[0];
                         const ndvi = latestReading?.ndvi_mean;
-                        const healthColor = ndvi >= 0.7 ? 'text-green-600' : ndvi >= 0.4 ? 'text-yellow-600' : 'text-red-500';
+                        const healthVariant = ndvi >= 0.7 ? 'success' : ndvi >= 0.4 ? 'warning' : 'destructive';
 
                         return (
-                            <div key={field.id} className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-2xl">
-                                            🌾
+                            <Card key={field.id} className="border border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200 overflow-hidden group">
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                                <Wheat className="w-5 h-5 text-white" strokeWidth={2.5} />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <CardTitle className="truncate">{field.name}</CardTitle>
+                                                <CardDescription className="uppercase tracking-wider font-semibold mt-0.5">
+                                                    {field.crop_type}
+                                                </CardDescription>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold text-gray-900">{field.name}</h2>
-                                            <p className="text-gray-500 text-sm font-medium uppercase tracking-tight">{field.crop_type}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-xs font-bold text-gray-400 uppercase">NDVI Status</div>
-                                        <div className={`text-2xl font-black ${ndvi ? healthColor : 'text-gray-300'}`}>
+                                        <Badge variant={healthVariant} className="flex-shrink-0">
                                             {ndvi ? ndvi.toFixed(2) : "N/A"}
-                                        </div>
+                                        </Badge>
                                     </div>
-                                </div>
+                                </CardHeader>
 
-                                <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
-                                    <Link 
-                                        href={`/fields/${field.id}`} 
-                                        className="text-emerald-600 font-bold text-sm hover:underline flex items-center gap-1"
-                                    >
-                                        View Details →
-                                    </Link>
-                                    <AnalyzeButton fieldId={field.id} />
-                                </div>
-                            </div>
+                                <CardContent className="pt-0 space-y-2.5">
+                                    <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                                        <Activity className="w-3 h-3" strokeWidth={2.5} />
+                                        <span className="font-medium">
+                                            {latestReading ? 
+                                                `Last scanned ${new Date(latestReading.date).toLocaleDateString()}` 
+                                                : 'No data yet'}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <Link href={`/fields/${field.id}`} className="flex-1">
+                                            <Button variant="outline" size="sm" className="w-full">
+                                                <TrendingUp className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                                <span>Details</span>
+                                            </Button>
+                                        </Link>
+                                        <AnalyzeButton fieldId={field.id} />
+                                    </div>
+                                </CardContent>
+                            </Card>
                         );
                     })}
                 </div>
 
                 {fields?.length === 0 && (
-                    <div className="text-center py-20 bg-white rounded-3xl shadow-inner border-2 border-dashed border-gray-200">
-                        <div className="text-4xl mb-4">🚜</div>
-                        <h3 className="text-lg font-bold text-gray-900">No fields found</h3>
-                        <p className="text-gray-500 mb-6 font-medium">Create your first field to start monitoring</p>
-                        <Link href="/fields/new" className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-emerald-700 transition-all">
-                            Add First Field
-                        </Link>
-                    </div>
+                    <Card className="col-span-full border-2 border-dashed border-slate-300 bg-white">
+                        <CardContent className="text-center py-12">
+                            <div className="flex justify-center mb-5">
+                                <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center">
+                                    <Tractor className="w-8 h-8 text-slate-400" strokeWidth={2.5} />
+                                </div>
+                            </div>
+                            <h3 className="text-base font-semibold text-slate-900 mb-1">No fields yet</h3>
+                            <p className="text-slate-600 mb-5 text-sm">Add your first field to start monitoring</p>
+                            <Link href="/fields/new">
+                                <Button size="default">
+                                    <Plus className="w-4 h-4" strokeWidth={2.5} />
+                                    <span>Add First Field</span>
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </div>

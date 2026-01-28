@@ -95,20 +95,41 @@ self.addEventListener('fetch', (event) => {
             return cached;
           }
 
-          // Fallback to network
-          console.log('[Service Worker] Fetching model from network:', url.pathname);
-          const response = await fetch(request);
-          
-          // Cache the response
-          if (response.ok) {
-            const cache = await caches.open(MODEL_CACHE);
-            cache.put(request, response.clone());
+          // Fallback to network (only if online)
+          try {
+            console.log('[Service Worker] Fetching model from network:', url.pathname);
+            const response = await fetch(request);
+            
+            // Cache the response
+            if (response.ok) {
+              const cache = await caches.open(MODEL_CACHE);
+              cache.put(request, response.clone());
+            }
+            
+            return response;
+          } catch (networkError) {
+            // Network failed, check cache one more time
+            const cachedFallback = await caches.match(request);
+            if (cachedFallback) {
+              console.log('[Service Worker] Serving model from cache (network failed):', url.pathname);
+              return cachedFallback;
+            }
+            // No cache available, return error response
+            console.error('[Service Worker] Model fetch failed and no cache available:', url.pathname);
+            return new Response('Model not available offline', {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'text/plain' }
+            });
           }
-          
-          return response;
         } catch (error) {
           console.error('[Service Worker] Model fetch failed:', error);
-          throw error;
+          // Return error response instead of throwing
+          return new Response('Model fetch failed', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'text/plain' }
+          });
         }
       })()
     );
@@ -125,7 +146,9 @@ self.addEventListener('fetch', (event) => {
         // Cache successful responses
         if (response.ok) {
           const cache = await caches.open(CACHE_NAME);
-          cache.put(request, response.clone());
+          cache.put(request, response.clone()).catch((err) => {
+            console.warn('[Service Worker] Failed to cache response:', err);
+          });
         }
         
         return response;
@@ -145,7 +168,13 @@ self.addEventListener('fetch', (event) => {
           }
         }
 
-        throw error;
+        // Return error response instead of throwing
+        console.warn('[Service Worker] Request failed and not cached:', url.pathname);
+        return new Response('Resource not available offline', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: { 'Content-Type': 'text/plain' }
+        });
       }
     })()
   );
@@ -160,9 +189,45 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'CACHE_MODEL') {
     event.waitUntil(
       (async () => {
-        const cache = await caches.open(MODEL_CACHE);
-        await cache.addAll(MODEL_FILES);
-        event.ports[0].postMessage({ success: true });
+        try {
+          const cache = await caches.open(MODEL_CACHE);
+          
+          // Check which files are already cached
+          const cacheChecks = await Promise.all(
+            MODEL_FILES.map(async (file) => {
+              const cached = await cache.match(file);
+              return { file, cached: !!cached };
+            })
+          );
+          
+          // Only fetch files that aren't cached
+          const filesToFetch = cacheChecks
+            .filter(({ cached }) => !cached)
+            .map(({ file }) => file);
+          
+          if (filesToFetch.length > 0) {
+            try {
+              // Try to fetch missing files (only works if online)
+              await cache.addAll(filesToFetch);
+              console.log('[Service Worker] Cached model files:', filesToFetch);
+            } catch (fetchError) {
+              // If offline, that's okay - files might already be cached from install
+              console.warn('[Service Worker] Could not fetch model files (offline?):', fetchError);
+              // Check if we have at least some files cached
+              const hasAnyCache = cacheChecks.some(({ cached }) => cached);
+              if (!hasAnyCache) {
+                throw new Error('No model files cached and offline');
+              }
+            }
+          } else {
+            console.log('[Service Worker] All model files already cached');
+          }
+          
+          event.ports[0]?.postMessage({ success: true });
+        } catch (error) {
+          console.error('[Service Worker] Cache model failed:', error);
+          event.ports[0]?.postMessage({ success: false, error: error.message });
+        }
       })()
     );
   }
@@ -170,14 +235,19 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'GET_CACHE_STATUS') {
     event.waitUntil(
       (async () => {
-        const modelCache = await caches.open(MODEL_CACHE);
-        const cachedFiles = await Promise.all(
-          MODEL_FILES.map(async (file) => {
-            const response = await modelCache.match(file);
-            return { file, cached: !!response };
-          })
-        );
-        event.ports[0].postMessage({ cachedFiles });
+        try {
+          const modelCache = await caches.open(MODEL_CACHE);
+          const cachedFiles = await Promise.all(
+            MODEL_FILES.map(async (file) => {
+              const response = await modelCache.match(file);
+              return { file, cached: !!response };
+            })
+          );
+          event.ports[0]?.postMessage({ cachedFiles });
+        } catch (error) {
+          console.error('[Service Worker] Get cache status failed:', error);
+          event.ports[0]?.postMessage({ cachedFiles: [], error: error.message });
+        }
       })()
     );
   }

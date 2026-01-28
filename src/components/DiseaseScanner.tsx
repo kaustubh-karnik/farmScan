@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect, ChangeEvent } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, X, AlertCircle, Loader2 } from 'lucide-react';
+import { Camera, X, AlertCircle, Loader2, Zap, Search, Check } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import offlineClassifier, { type ClassificationResult } from '@/lib/offline-classifier';
 
@@ -162,28 +162,40 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-900 rounded-2xl overflow-hidden max-w-md w-full shadow-2xl">
-        {/* Header */}
-        <div className="bg-gray-800 bg-opacity-80 p-4 flex justify-between items-center absolute top-0 left-0 right-0 z-10">
-          <div className={`px-3 py-1 rounded-full flex items-center gap-2 ${
-            isModelLoading ? 'bg-yellow-500' : isLoading ? 'bg-emerald-500' : 'bg-blue-500'
+    <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+      <div className="bg-stone-900 rounded-3xl overflow-hidden max-w-md w-full shadow-2xl">
+        {/* Header - Cleaner Status */}
+        <div className="bg-stone-900/95 backdrop-blur-sm p-5 flex justify-between items-center absolute top-0 left-0 right-0 z-10">
+          <div className={`px-4 py-2.5 rounded-full flex items-center gap-2.5 ${
+            isModelLoading ? 'bg-amber-500' : isLoading ? 'bg-emerald-600' : 'bg-sky-600'
           }`}>
-            <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-            <span className="text-white text-xs font-semibold">
-              {isModelLoading
-                ? `⚡ ${t('scanner.loadingModel', 'Loading AI...')}`
-                : isLoading
-                ? `🔍 ${t('scanner.scanning', 'Scanning...')}`
-                : `✓ ${t('scanner.modelReady', 'Ready')}`}
+            <span className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></span>
+            <span className="text-white text-sm font-bold flex items-center gap-2">
+              {isModelLoading ? (
+                <>
+                  <Zap className="w-4 h-4" strokeWidth={2.5} />
+                  <span>{t('scanner.loadingModel', 'Loading AI...')}</span>
+                </>
+              ) : isLoading ? (
+                <>
+                  <Search className="w-4 h-4" strokeWidth={2.5} />
+                  <span>{t('scanner.scanning', 'Scanning...')}</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" strokeWidth={2.5} />
+                  <span>{t('scanner.modelReady', 'Ready')}</span>
+                </>
+              )}
             </span>
           </div>
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="text-white hover:bg-gray-700 p-2 rounded-lg transition-colors disabled:opacity-50 bg-gray-800"
+            className="text-white hover:bg-stone-800 p-3 rounded-xl transition-colors disabled:opacity-50 bg-stone-800/80 touch-target"
+            aria-label="Close scanner"
           >
-            <X className="w-6 h-6" />
+            <X className="w-6 h-6" strokeWidth={2.5} />
           </button>
         </div>
 
@@ -213,45 +225,43 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
             </div>
           )}
 
-          {/* Target Frame Overlay */}
+          {/* Target Frame Overlay - Cleaner Design */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative w-64 h-64">
-              {/* Corner brackets */}
-              <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl"></div>
-              <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl"></div>
-              <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl"></div>
-              <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-emerald-400 rounded-br-xl"></div>
+            <div className="relative w-72 h-72">
+              {/* Corner brackets - Thicker and more visible */}
+              <div className="absolute top-0 left-0 w-16 h-16 border-t-[5px] border-l-[5px] border-emerald-400 rounded-tl-2xl" style={{boxShadow: '0 0 20px rgba(52, 211, 153, 0.6)'}}></div>
+              <div className="absolute top-0 right-0 w-16 h-16 border-t-[5px] border-r-[5px] border-emerald-400 rounded-tr-2xl" style={{boxShadow: '0 0 20px rgba(52, 211, 153, 0.6)'}}></div>
+              <div className="absolute bottom-0 left-0 w-16 h-16 border-b-[5px] border-l-[5px] border-emerald-400 rounded-bl-2xl" style={{boxShadow: '0 0 20px rgba(52, 211, 153, 0.6)'}}></div>
+              <div className="absolute bottom-0 right-0 w-16 h-16 border-b-[5px] border-r-[5px] border-emerald-400 rounded-br-2xl" style={{boxShadow: '0 0 20px rgba(52, 211, 153, 0.6)'}}></div>
               
-              {/* Center crosshair */}
+              {/* Center crosshair - Simplified */}
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className="w-8 h-8 border-2 border-emerald-400 rounded-full"></div>
-                <div className="absolute top-1/2 left-0 w-full h-0.5 bg-emerald-400 transform -translate-y-1/2"></div>
-                <div className="absolute top-0 left-1/2 w-0.5 h-full bg-emerald-400 transform -translate-x-1/2"></div>
+                <div className="w-10 h-10 border-[3px] border-emerald-400 rounded-full" style={{boxShadow: '0 0 15px rgba(52, 211, 153, 0.5)'}}></div>
               </div>
 
               {/* Scanning line animation */}
               {isLoading && (
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-scan"></div>
+                <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                  <div className="w-full h-1.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-scan" style={{boxShadow: '0 0 10px rgba(52, 211, 153, 0.8)'}}></div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Scanning Progress */}
+          {/* Scanning Progress - Cleaner Feedback */}
           {(isLoading || isModelLoading) && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex flex-col items-center justify-end pb-20">
-              <div className="bg-emerald-500 bg-opacity-90 backdrop-blur-sm rounded-2xl px-6 py-4 text-center">
-                <div className="flex items-center gap-3 justify-center mb-2">
-                  <Loader2 className="w-5 h-5 text-white animate-spin" />
-                  <div className="text-white font-bold text-lg">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col items-center justify-end pb-32">
+              <div className="bg-emerald-600 rounded-2xl px-8 py-5 text-center shadow-2xl" style={{border: '3px solid #10b981'}}>
+                <div className="flex items-center gap-4 justify-center mb-3">
+                  <Loader2 className="w-7 h-7 text-white animate-spin" strokeWidth={3} />
+                  <div className="text-white font-bold text-xl">
                     {scanProgress || t('scanner.processing', 'Processing...')}
                   </div>
                 </div>
                 {!isModelLoading && (
                   <div className="flex items-center gap-2 justify-center">
-                    <div className="w-full bg-emerald-700 rounded-full h-2 max-w-[200px]">
-                      <div className="bg-white h-2 rounded-full animate-pulse" style={{ width: '94%' }}></div>
+                    <div className="w-full bg-emerald-800 rounded-full h-2.5 max-w-[240px]">
+                      <div className="bg-white h-2.5 rounded-full animate-pulse" style={{ width: '94%' }}></div>
                     </div>
                   </div>
                 )}
@@ -262,8 +272,8 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
 
         {/* Bottom instruction text */}
         {!isLoading && !isModelLoading && !error && (
-          <div className="absolute bottom-20 left-0 right-0 text-center px-4">
-            <p className="text-white text-sm bg-black bg-opacity-50 backdrop-blur-sm rounded-lg py-2 px-4 inline-block">
+          <div className="absolute bottom-32 left-0 right-0 text-center px-6">
+            <p className="text-white text-base font-bold bg-black/70 backdrop-blur-md rounded-xl py-3 px-6 inline-block shadow-lg">
               {t('scanner.subtitle', 'Position leaf within the frame')}
             </p>
           </div>
@@ -271,27 +281,27 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
 
         {/* Model Loading Message */}
         {isModelLoading && !error && (
-          <div className="absolute bottom-20 left-0 right-0 text-center px-4">
-            <div className="text-white text-sm bg-blue-600 bg-opacity-90 backdrop-blur-sm rounded-lg py-3 px-4 inline-block">
-              <Loader2 className="w-4 h-4 inline-block mr-2 animate-spin" />
-              {t('scanner.loadingModel', 'Loading AI model...')}
+          <div className="absolute bottom-32 left-0 right-0 text-center px-6">
+            <div className="text-white bg-sky-600/95 backdrop-blur-md rounded-xl py-4 px-6 inline-block shadow-lg">
+              <Loader2 className="w-5 h-5 inline-block mr-3 animate-spin" strokeWidth={2.5} />
+              <span className="text-base font-bold">{t('scanner.loadingModel', 'Loading AI model...')}</span>
             </div>
           </div>
         )}
 
-        {/* Capture & Gallery Buttons */}
+        {/* Capture & Gallery Buttons - Larger Touch Targets */}
         {!isLoading && !isModelLoading && !error && (
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-4 items-center px-4">
-            <div className="flex flex-col items-center gap-1">
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-6 items-end px-6">
+            <div className="flex flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 rounded-full bg-white/90 text-gray-900 text-xs font-semibold shadow hover:bg-white transition-colors"
+                className="touch-target-lg px-5 py-3 rounded-2xl bg-white text-stone-900 text-sm font-bold shadow-lg hover:bg-stone-100 active:scale-95 transition-all"
               >
-                {t('scanner.gallery', 'Gallery / Files')}
+                {t('scanner.gallery', 'Gallery')}
               </button>
-              <p className="text-[10px] text-gray-300">
-                {t('scanner.galleryHint', 'Use saved leaf photo')}
+              <p className="text-xs text-stone-300 font-medium text-center max-w-[100px]">
+                {t('scanner.galleryHint', 'Use saved photo')}
               </p>
               <input
                 ref={fileInputRef}
@@ -305,10 +315,12 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
             <button
               onClick={handleCapture}
               disabled={isLoading || isModelLoading}
-              className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition-transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+              aria-label="Capture image"
+              style={{border: '4px solid white'}}
             >
-              <div className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center">
-                <Camera className="w-7 h-7 text-white" />
+              <div className="w-16 h-16 bg-emerald-600 rounded-full flex items-center justify-center">
+                <Camera className="w-9 h-9 text-white" strokeWidth={2.5} />
               </div>
             </button>
           </div>

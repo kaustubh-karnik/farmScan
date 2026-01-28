@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Sparkles, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function AnalyzeButton({ fieldId }: { fieldId: string }) {
     const [loading, setLoading] = useState(false);
@@ -21,22 +23,23 @@ export default function AnalyzeButton({ fieldId }: { fieldId: string }) {
     };
 
     return (
-        <button
+        <Button
             onClick={handleAnalyze}
             disabled={loading}
-            className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-1.5 rounded-xl text-sm font-bold hover:bg-emerald-100 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+            size="sm"
+            className="flex-shrink-0"
         >
             {loading ? (
                 <>
-                    <span className="w-3 h-3 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin"></span>
-                    Analyzing...
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2.5} />
+                    <span>Analyzing...</span>
                 </>
             ) : (
                 <>
-                    <span>🔍</span>
-                    Analyze Now
+                    <Sparkles className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    <span>Analyze</span>
                 </>
             )}
-        </button>
+        </Button>
     );
 }

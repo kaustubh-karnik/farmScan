@@ -1,28 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #059669;
-  --color-primary-light: #ecfdf5;
-  --color-primary-dark: #047857;
-  --color-secondary: #ea580c;
-  --color-secondary-light: #fed7aa;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  --color-info: #3b82f6;
-  --color-background: #ffffff;
-  --color-text-secondary: #6b7280;
-  --color-border: #e5e7eb;
-  --color-border-light: #f3f4f6;
+  /* Modern agricultural palette */
+  --color-primary: #10b981;        /* Fresh emerald green */
+  --color-primary-light: #d1fae5;  /* Light mint */
+  --color-primary-dark: #059669;   /* Rich emerald */
+  
+  --color-secondary: #f59e0b;      /* Warm amber */
+  --color-secondary-light: #fef3c7; /* Light amber */
+  
+  --color-success: #10b981;        /* Success green */
+  --color-warning: #f59e0b;        /* Warning amber */
+  --color-danger: #ef4444;         /* Danger red */
+  --color-info: #3b82f6;           /* Info blue */
+  
+  --color-background: #ffffff;     /* Pure white */
+  --color-surface: #fafafa;        /* Off-white */
+  --color-text-primary: #0f172a;   /* Slate 900 */
+  --color-text-secondary: #475569; /* Slate 600 */
+  --color-text-muted: #94a3b8;     /* Slate 400 */
+  
+  --color-border: #e2e8f0;         /* Slate 200 */
+  --color-border-strong: #cbd5e1;  /* Slate 300 */
 
   --font-inter: var(--font-inter), ui-sans-serif, system-ui;
   --font-devanagari: var(--font-devanagari), sans-serif;
-  
-  /* New design system shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 @media (prefers-color-scheme: light) {
@@ -40,8 +42,15 @@
   }
 
   body {
-    @apply font-sans text-base bg-white text-gray-900;
-    line-height: 1.6;
+    @apply font-sans;
+    background-color: #F5F3EE;
+    color: var(--color-text-primary);
+    font-size: 15px;
+    line-height: 1.5;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: rgba(107, 123, 63, 0.1);
   }
 
   /* Font family utilities */
@@ -53,21 +62,25 @@
     font-family: var(--font-devanagari), 'Noto Sans Devanagari', sans-serif;
   }
 
-  /* Heading styles */
+  /* Heading styles - larger and bolder for outdoor use */
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold tracking-tight;
+    color: var(--color-text-primary);
   }
 
   h1 {
-    @apply text-4xl md:text-5xl;
+    @apply text-3xl md:text-4xl;
+    line-height: 1.2;
   }
 
   h2 {
-    @apply text-3xl md:text-4xl;
+    @apply text-2xl md:text-3xl;
+    line-height: 1.3;
   }
 
   h3 {
-    @apply text-2xl md:text-3xl;
+    @apply text-xl md:text-2xl;
+    line-height: 1.4;
   }
 
   /* Links */
@@ -75,76 +88,171 @@
     @apply transition-colors duration-200;
   }
 
-  /* Button reset */
+  /* Button reset - Larger touch targets for farmers */
   button {
-    @apply transition-all duration-200;
+    @apply transition-colors duration-150;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(16, 185, 129, 0.2);
+  }
+  
+  /* Ensure minimum touch target size (44x44px) */
+  button, a {
+    min-height: 44px;
   }
 
-  /* Focus states for accessibility */
+  /* Focus states for accessibility - high contrast */
   button:focus-visible,
   a:focus-visible {
-    @apply outline-none ring-2 ring-offset-2 ring-emerald-600;
+    @apply outline-none ring-4 ring-offset-2;
+    ring-color: var(--color-primary);
   }
 }
 
 @layer components {
-  /* Primary button */
+  /* Primary button - Bold, high-contrast for outdoor use */
   .btn-primary {
-    @apply px-4 py-2 md:px-6 md:py-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition-colors min-h-[44px] md:min-h-[48px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3 text-white font-bold rounded-xl transition-all min-h-[52px] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed;
+    background-color: var(--color-primary);
+    border: 2px solid var(--color-primary-dark);
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-dark);
+  }
+  
+  .btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+    box-shadow: none;
   }
 
-  /* Secondary button */
+  /* Secondary button - Earth tone for less critical actions */
   .btn-secondary {
-    @apply px-4 py-2 md:px-6 md:py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition-colors min-h-[44px] md:min-h-[48px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3 text-white font-bold rounded-xl transition-all min-h-[52px] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed;
+    background-color: var(--color-secondary);
+    border: 2px solid #78350f;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .btn-secondary:hover:not(:disabled) {
+    background-color: #78350f;
+  }
+  
+  .btn-secondary:active:not(:disabled) {
+    transform: scale(0.98);
+    box-shadow: none;
   }
 
-  /* Outline button */
+  /* Outline button - Clean alternative action */
   .btn-outline {
-    @apply px-4 py-2 md:px-6 md:py-3 border-2 border-emerald-600 text-emerald-600 font-semibold rounded-lg hover:bg-emerald-50 transition-colors min-h-[44px] md:min-h-[48px] flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3 font-bold rounded-xl transition-all min-h-[52px] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed;
+    background-color: white;
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary-dark);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  
+  .btn-outline:hover:not(:disabled) {
+    background-color: var(--color-primary-light);
+  }
+  
+  .btn-outline:active:not(:disabled) {
+    transform: scale(0.98);
   }
 
-  /* Card component */
+  /* Card component - Clean, minimal, high contrast */
   .card {
-    @apply bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow;
+    @apply bg-white rounded-2xl transition-colors;
+    border: 2px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
   }
 
   .card-lg {
-    @apply bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow;
+    @apply bg-white rounded-2xl transition-colors;
+    border: 2px solid var(--color-border);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .card-interactive {
+    @apply bg-white rounded-2xl transition-all cursor-pointer;
+    border: 2px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .card-interactive:hover {
+    border-color: var(--color-border-strong);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  
+  .card-interactive:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
   }
 
-  /* Badge component */
-  .badge-base {
-    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold;
-  }
-
-  .badge-primary {
-    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700;
-  }
-
-  .badge-secondary {
-    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 text-amber-700;
-  }
-
+  /* Badge component - High contrast, larger text */
   .badge-success {
-    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-700;
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold;
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 2px solid #86efac;
+    font-size: 15px;
   }
 
   .badge-warning {
-    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-700;
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold;
+    background-color: #fef9c3;
+    color: #a16207;
+    border: 2px solid #fde047;
+    font-size: 15px;
   }
 
   .badge-danger {
-    @apply inline-block px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-700;
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold;
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 2px solid #fca5a5;
+    font-size: 15px;
+  }
+  
+  .badge-info {
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-bold;
+    background-color: #dbeafe;
+    color: #1e40af;
+    border: 2px solid #93c5fd;
+    font-size: 15px;
   }
 
-  /* Input field */
+  /* Input field - Large, high contrast for outdoor use */
   .input {
-    @apply w-full px-4 py-2 md:py-3 border-2 border-gray-300 rounded-lg text-base transition-colors focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 min-h-[44px] md:min-h-[48px];
+    @apply w-full px-5 py-4 rounded-xl font-medium transition-all focus:outline-none min-h-[56px];
+    background-color: white;
+    border: 3px solid var(--color-border-strong);
+    color: var(--color-text-primary);
+    font-size: 17px;
+  }
+  
+  .input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+  }
+  
+  .input::placeholder {
+    color: var(--color-text-muted);
   }
 
-  /* Touch target (44x44px minimum) */
+  /* Touch target - Large for farmers with rough hands (48x48px minimum) */
   .touch-target {
-    @apply min-w-[44px] min-h-[44px] md:min-w-[48px] md:min-h-[48px];
+    @apply min-w-[48px] min-h-[48px] flex items-center justify-center;
+  }
+  
+  .touch-target-lg {
+    @apply min-w-[56px] min-h-[56px] flex items-center justify-center;
   }
 
   /* Loading skeleton */
@@ -202,13 +310,22 @@
   }
 }
 
-/* Smooth transitions */
+/* Minimal transitions - Performance focused */
 * {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 input, textarea, select {
-  transition: all 0.2s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+/* Remove heavy animations for better performance */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Print styles */
