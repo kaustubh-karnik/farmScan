@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, ChangeEvent } from 'react';
 import Webcam from 'react-webcam';
 import { Camera, X, AlertCircle, Loader2 } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
@@ -20,6 +20,7 @@ interface DiseaseScannerProps {
 
 export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
   const webcamRef = useRef<Webcam>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,9 +32,9 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
     const initModel = async () => {
       try {
         setIsModelLoading(true);
-        setScanProgress('Loading AI model...');
+        setScanProgress(t('scanner.loadingModel', 'Loading AI model...'));
         await offlineClassifier.loadModel();
-        setScanProgress('Model ready');
+        setScanProgress(t('scanner.modelReady', 'Model ready'));
         setIsModelLoading(false);
       } catch (err) {
         console.error('Failed to load model:', err);
@@ -55,20 +56,20 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
     try {
       setIsLoading(true);
       setError(null);
-      setScanProgress('Capturing image...');
+      setScanProgress(t('scanner.capturingImage', 'Capturing image...'));
 
       // Get video element from webcam
       const video = webcamRef.current?.video;
       if (!video) {
-        throw new Error('Camera not available');
+        throw new Error(t('scanner.noCamera', 'Camera not available'));
       }
 
       // Wait for video to be ready
       if (video.readyState < 2) {
-        throw new Error('Camera is not ready yet');
+        throw new Error(t('scanner.cameraNotReady', 'Camera is not ready yet'));
       }
 
-      setScanProgress('Analyzing plant...');
+      setScanProgress(t('scanner.analyzingPlant', 'Analyzing plant...'));
 
       // Run classification
       const result: ClassificationResult = await offlineClassifier.classifyFromWebcam(video);
@@ -90,12 +91,71 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
       });
     } catch (err) {
       console.error('Classification error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to analyze image');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('scanner.errorClassification', 'Failed to analyze image')
+      );
       setScanProgress('');
     } finally {
       setIsLoading(false);
     }
-  }, [onResult]);
+  }, [onResult, t]);
+
+  const handleFileChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        setScanProgress(t('scanner.loadingImage', 'Loading image...'));
+
+        // Read file as data URL
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to read image'));
+          reader.readAsDataURL(file);
+        });
+
+        setScanProgress(t('scanner.analyzingPlant', 'Analyzing plant...'));
+
+        const result: ClassificationResult = await offlineClassifier.classifyImage(
+          dataUrl
+        );
+
+        setScanProgress(
+          `Detected: ${result.displayName} (${result.confidence.toFixed(1)}%)`
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        onResult({
+          disease: result.displayName,
+          confidence: result.confidence,
+          treatment: result.treatment,
+          severity: result.severity,
+        });
+      } catch (err) {
+        console.error('Classification error:', err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : t('scanner.errorClassification', 'Failed to analyze image')
+        );
+        setScanProgress('');
+      } finally {
+        setIsLoading(false);
+        // reset input so same file can be selected again
+        if (event.target) {
+          event.target.value = '';
+        }
+      }
+    },
+    [onResult, t]
+  );
 
   const videoConstraints = {
     facingMode: 'environment',
@@ -111,7 +171,11 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
           }`}>
             <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
             <span className="text-white text-xs font-semibold">
-              {isModelLoading ? '⚡ Loading AI...' : isLoading ? '🔍 Scanning...' : '✓ Ready'}
+              {isModelLoading
+                ? `⚡ ${t('scanner.loadingModel', 'Loading AI...')}`
+                : isLoading
+                ? `🔍 ${t('scanner.scanning', 'Scanning...')}`
+                : `✓ ${t('scanner.modelReady', 'Ready')}`}
             </span>
           </div>
           <button
@@ -144,7 +208,7 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
                 }}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
               >
-                Try Again
+                {t('scanner.retry', 'Try Again')}
               </button>
             </div>
           )}
@@ -181,7 +245,7 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
                 <div className="flex items-center gap-3 justify-center mb-2">
                   <Loader2 className="w-5 h-5 text-white animate-spin" />
                   <div className="text-white font-bold text-lg">
-                    {scanProgress || 'Processing...'}
+                    {scanProgress || t('scanner.processing', 'Processing...')}
                   </div>
                 </div>
                 {!isModelLoading && (
@@ -200,7 +264,7 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
         {!isLoading && !isModelLoading && !error && (
           <div className="absolute bottom-20 left-0 right-0 text-center px-4">
             <p className="text-white text-sm bg-black bg-opacity-50 backdrop-blur-sm rounded-lg py-2 px-4 inline-block">
-              Position leaf within the frame
+              {t('scanner.subtitle', 'Position leaf within the frame')}
             </p>
           </div>
         )}
@@ -210,14 +274,34 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
           <div className="absolute bottom-20 left-0 right-0 text-center px-4">
             <div className="text-white text-sm bg-blue-600 bg-opacity-90 backdrop-blur-sm rounded-lg py-3 px-4 inline-block">
               <Loader2 className="w-4 h-4 inline-block mr-2 animate-spin" />
-              Loading offline AI model...
+              {t('scanner.loadingModel', 'Loading AI model...')}
             </div>
           </div>
         )}
 
-        {/* Capture Button */}
+        {/* Capture & Gallery Buttons */}
         {!isLoading && !isModelLoading && !error && (
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center">
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-4 items-center px-4">
+            <div className="flex flex-col items-center gap-1">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 rounded-full bg-white/90 text-gray-900 text-xs font-semibold shadow hover:bg-white transition-colors"
+              >
+                {t('scanner.gallery', 'Gallery / Files')}
+              </button>
+              <p className="text-[10px] text-gray-300">
+                {t('scanner.galleryHint', 'Use saved leaf photo')}
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </div>
+
             <button
               onClick={handleCapture}
               disabled={isLoading || isModelLoading}
