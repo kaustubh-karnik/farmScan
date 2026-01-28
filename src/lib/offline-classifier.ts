@@ -109,8 +109,8 @@ export interface ClassificationResult {
 }
 
 class OfflineClassifier {
-  private model: tf.LayersModel | null = null;
-  private modelLoading: Promise<tf.LayersModel> | null = null;
+  private model: tf.GraphModel | null = null;
+  private modelLoading: Promise<tf.GraphModel> | null = null;
   private isInitialized = false;
 
   /**
@@ -135,9 +135,9 @@ class OfflineClassifier {
   }
 
   /**
-   * Load the model from the public directory
+   * Load the model from the public directory (TensorFlow.js GraphModel)
    */
-  async loadModel(): Promise<tf.LayersModel> {
+  async loadModel(): Promise<tf.GraphModel> {
     // Return existing model if already loaded
     if (this.model) {
       return this.model;
@@ -159,106 +159,16 @@ class OfflineClassifier {
           this.isInitialized = true;
         }
 
-        // Load model from public directory
+        // Load model from public directory as a GraphModel
         const modelPath = '/models/image-classifier/model.json';
-        
-        // First, verify the model file is accessible
-        console.log('📡 Checking model availability at:', modelPath);
-        
-        let model: tf.LayersModel;
-        
-        try {
-          // Fetch and fix model JSON for Keras 3 compatibility
-          const response = await fetch(modelPath);
-          if (!response.ok) {
-            throw new Error(`Model file not found: ${response.status} ${response.statusText}`);
-          }
-          const modelJson = await response.json();
-          console.log('✅ Model JSON loaded:', modelJson.format, modelJson.generatedBy);
-          
-          // Fix Keras 3.x InputLayer compatibility issue
-          if (modelJson.modelTopology?.model_config?.layers) {
-            modelJson.modelTopology.model_config.layers.forEach((layer: {
-              class_name?: string;
-              config?: {
-                batch_shape?: number[];
-                input_shape?: number[];
-                batchInputShape?: number[];
-              };
-            }) => {
-              if (layer.class_name === 'InputLayer' && layer.config?.batch_shape) {
-                // TensorFlow.js expects 'batchInputShape' instead of 'batch_shape'
-                if (!layer.config.batchInputShape) {
-                  layer.config.batchInputShape = layer.config.batch_shape;
-                  console.log('🔧 Fixed InputLayer config for TF.js compatibility');
-                }
-              }
-            });
-          }
-          
-          // Load weights manifest
-          const weightsManifest = modelJson.weightsManifest;
-          const weightSpecs = weightsManifest[0].weights;
-          const weightDataPaths = weightsManifest[0].paths.map((path: string) => 
-            `/models/image-classifier/${path}`
-          );
-          
-          // Fetch weight data
-          const weightDataBuffers = await Promise.all(
-            weightDataPaths.map(async (path: string) => {
-              const res = await fetch(path);
-              return res.arrayBuffer();
-            })
-          );
-          
-          // Concatenate weight data
-          const totalBytes = weightDataBuffers.reduce((sum, buf) => sum + buf.byteLength, 0);
-          const concatenatedWeights = new Uint8Array(totalBytes);
-          let offset = 0;
-          for (const buffer of weightDataBuffers) {
-            concatenatedWeights.set(new Uint8Array(buffer), offset);
-            offset += buffer.byteLength;
-          }
-          
-          // Create model artifacts with fixed topology
-          const modelArtifacts = {
-            modelTopology: modelJson.modelTopology,
-            weightSpecs: weightSpecs,
-            weightData: concatenatedWeights.buffer,
-            format: modelJson.format,
-            generatedBy: modelJson.generatedBy,
-            convertedBy: modelJson.convertedBy,
-            trainingConfig: modelJson.trainingConfig,
-          };
-          
-          // Load model from memory with fixed artifacts
-          console.log('🔄 Loading model layers with compatibility fixes...');
-          model = await tf.loadLayersModel(tf.io.fromMemory(modelArtifacts));
-          
-        } catch (fetchError) {
-          console.error('❌ Failed to load model:', fetchError);
-          // Fallback: try direct loading (might still fail)
-          console.log('⚠️ Attempting direct model loading as fallback...');
-          model = await tf.loadLayersModel(modelPath);
+        console.log('📡 Loading TF.js GraphModel from:', modelPath);
+        const model = await tf.loadGraphModel(modelPath);
+
+        console.log('✅ GraphModel loaded successfully');
+        if (model.inputs?.length && model.outputs?.length) {
+          console.log('📊 Model input:', model.inputs[0].name, model.inputs[0].shape);
+          console.log('📊 Model output:', model.outputs[0].name, model.outputs[0].shape);
         }
-
-        // Verify model structure
-        if (!model.inputs || !model.outputs) {
-          throw new Error('Invalid model structure: missing inputs or outputs');
-        }
-
-        console.log('✅ Model loaded successfully');
-        console.log('📊 Model input shape:', model.inputs[0].shape);
-        console.log('📊 Model output shape:', model.outputs[0].shape);
-        console.log('📊 Total layers:', model.layers.length);
-
-        // Warm up the model with a dummy inference
-        console.log('🔥 Warming up model...');
-        const dummyInput = tf.zeros([1, 224, 224, 3]);
-        const dummyOutput = model.predict(dummyInput) as tf.Tensor;
-        dummyInput.dispose();
-        dummyOutput.dispose();
-        console.log('✅ Model warm-up complete');
 
         this.model = model;
         return model;
@@ -277,8 +187,6 @@ class OfflineClassifier {
             throw new Error('Model files not found. Please ensure the model files are in the public/models/image-classifier directory.');
           } else if (error.message.includes('CORS') || error.message.includes('network')) {
             throw new Error('Network error loading model. Please check your connection and try again.');
-          } else if (error.message.includes('InputLayer')) {
-            throw new Error('Model format error. The model may be corrupted or incompatible.');
           } else {
             throw new Error(`Failed to load model: ${error.message}`);
           }
@@ -292,18 +200,18 @@ class OfflineClassifier {
   }
 
   /**
-   * Preprocess image for model input
+   * Preprocess image for model input (GraphModel expects float images)
    */
   private preprocessImage(imageElement: HTMLImageElement | HTMLVideoElement): tf.Tensor4D {
     return tf.tidy(() => {
       // Convert image to tensor
       const tensor = tf.browser.fromPixels(imageElement);
 
-      // Resize to 224x224 (MobileNetV2 input size)
+      // Resize to 224x224
       const resized = tf.image.resizeBilinear(tensor, [224, 224]);
 
-      // Normalize to [-1, 1] range (MobileNetV2 preprocessing)
-      const normalized = tf.div(resized, 127.5).sub(1);
+      // Normalize to [0, 1]
+      const normalized = tf.div(resized, 255);
 
       // Add batch dimension
       const batched = normalized.expandDims(0) as tf.Tensor4D;
@@ -333,9 +241,18 @@ class OfflineClassifier {
       // Preprocess image
       const preprocessed = this.preprocessImage(imageElement);
 
-      // Run inference
+      // Run inference using GraphModel
       console.log('🔍 Running inference...');
-      const predictions = model.predict(preprocessed) as tf.Tensor;
+      const graphModel = model;
+
+      const inputName = graphModel.inputs[0].name;
+      const outputName = graphModel.outputs[0].name;
+
+      const predictions = graphModel.execute(
+        { [inputName]: preprocessed },
+        outputName
+      ) as tf.Tensor;
+
       const probabilities = await predictions.data();
 
       // Clean up tensors
