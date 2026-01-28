@@ -3,6 +3,7 @@ import { Inter, Noto_Sans_Devanagari } from "next/font/google";
 import "./globals.css";
 import { I18nProvider } from "@/contexts/I18nContext";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -42,6 +43,7 @@ export default function RootLayout({
         className={`${inter.variable} ${devanagari.variable} antialiased font-sans`}
       >
         <I18nProvider>
+          <ServiceWorkerRegistration />
           {children}
           <OfflineIndicator />
         </I18nProvider>

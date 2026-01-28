@@ -32,7 +32,15 @@
     "retry": "Retry",
     "analyzing": "Analyzing...",
     "processing": "Processing image...",
-    "noCamera": "Camera not available"
+    "noCamera": "Camera not available",
+    "loadingModel": "Loading AI model...",
+    "modelReady": "Ready",
+    "scanning": "Scanning...",
+    "capturingImage": "Capturing image...",
+    "analyzingPlant": "Analyzing plant...",
+    "offlineMode": "Works Offline",
+    "errorModelLoad": "Failed to load AI model. Please check your connection.",
+    "errorClassification": "Failed to analyze image. Please try again."
   },
   "results": {
     "disease": "Disease Detected",

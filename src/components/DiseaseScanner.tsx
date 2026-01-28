@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, X } from 'lucide-react';
+import { Camera, X, AlertCircle, Loader2 } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
+import offlineClassifier, { type ClassificationResult } from '@/lib/offline-classifier';
 
 interface ScanResult {
   disease: string;
@@ -20,59 +21,81 @@ interface DiseaseScannerProps {
 export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
   const webcamRef = useRef<Webcam>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scanProgress, setScanProgress] = useState<string>('');
   const { t } = useI18n();
 
-  const mockDiseases = [
-    {
-      disease: 'Early Blight',
-      confidence: 87,
-      treatment: 'earlyblight',
-      severity: 'high' as const,
-    },
-    {
-      disease: 'Powdery Mildew',
-      confidence: 76,
-      treatment: 'powderymildew',
-      severity: 'medium' as const,
-    },
-    {
-      disease: 'Healthy',
-      confidence: 92,
-      treatment: 'healthy',
-      severity: 'low' as const,
-    },
-  ];
+  // Load model on mount
+  useEffect(() => {
+    const initModel = async () => {
+      try {
+        setIsModelLoading(true);
+        setScanProgress('Loading AI model...');
+        await offlineClassifier.loadModel();
+        setScanProgress('Model ready');
+        setIsModelLoading(false);
+      } catch (err) {
+        console.error('Failed to load model:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load AI model');
+        setIsModelLoading(false);
+      }
+    };
+
+    initModel();
+
+    // Cleanup on unmount
+    return () => {
+      // Don't dispose model as it might be used again
+      // offlineClassifier.disposeModel();
+    };
+  }, []);
 
   const handleCapture = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
+      setScanProgress('Capturing image...');
 
-      const imageSrc = webcamRef.current?.getScreenshot();
-      if (!imageSrc) {
-        setError(t('scanner.noCamera'));
-        return;
+      // Get video element from webcam
+      const video = webcamRef.current?.video;
+      if (!video) {
+        throw new Error('Camera not available');
       }
 
-      // Simulate AI processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Wait for video to be ready
+      if (video.readyState < 2) {
+        throw new Error('Camera is not ready yet');
+      }
 
-      // Mock result - in production, this would be sent to a backend ML service
-      const randomResult = mockDiseases[Math.floor(Math.random() * mockDiseases.length)];
+      setScanProgress('Analyzing plant...');
 
+      // Run classification
+      const result: ClassificationResult = await offlineClassifier.classifyFromWebcam(video);
+
+      console.log('Classification result:', result);
+      
+      // Show progress with detected disease
+      setScanProgress(`Detected: ${result.displayName} (${result.confidence.toFixed(1)}%)`);
+
+      // Wait a moment to show the result
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Return result
       onResult({
-        disease: randomResult.disease,
-        confidence: randomResult.confidence,
-        treatment: randomResult.treatment,
-        severity: randomResult.severity,
+        disease: result.displayName,
+        confidence: result.confidence,
+        treatment: result.treatment,
+        severity: result.severity,
       });
     } catch (err) {
-      setError('Failed to process image');
+      console.error('Classification error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to analyze image');
+      setScanProgress('');
     } finally {
       setIsLoading(false);
     }
-  }, [onResult, t]);
+  }, [onResult]);
 
   const videoConstraints = {
     facingMode: 'environment',
@@ -83,9 +106,13 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
       <div className="bg-gray-900 rounded-2xl overflow-hidden max-w-md w-full shadow-2xl">
         {/* Header */}
         <div className="bg-gray-800 bg-opacity-80 p-4 flex justify-between items-center absolute top-0 left-0 right-0 z-10">
-          <div className="bg-emerald-500 px-3 py-1 rounded-full flex items-center gap-2">
+          <div className={`px-3 py-1 rounded-full flex items-center gap-2 ${
+            isModelLoading ? 'bg-yellow-500' : isLoading ? 'bg-emerald-500' : 'bg-blue-500'
+          }`}>
             <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-            <span className="text-white text-xs font-semibold">⚡ AI Scanning...</span>
+            <span className="text-white text-xs font-semibold">
+              {isModelLoading ? '⚡ Loading AI...' : isLoading ? '🔍 Scanning...' : '✓ Ready'}
+            </span>
           </div>
           <button
             onClick={onClose}
@@ -107,9 +134,18 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-white gap-4">
-              <Camera className="w-16 h-16 opacity-50" />
-              <p className="text-center">{error}</p>
+            <div className="w-full h-full flex flex-col items-center justify-center text-white gap-4 p-6">
+              <AlertCircle className="w-16 h-16 text-red-500" />
+              <p className="text-center text-red-400 font-semibold">{error}</p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  setIsModelLoading(false);
+                }}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+              >
+                Try Again
+              </button>
             </div>
           )}
 
@@ -139,22 +175,29 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
           </div>
 
           {/* Scanning Progress */}
-          {isLoading && (
+          {(isLoading || isModelLoading) && (
             <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex flex-col items-center justify-end pb-20">
               <div className="bg-emerald-500 bg-opacity-90 backdrop-blur-sm rounded-2xl px-6 py-4 text-center">
-                <div className="text-white font-bold text-lg mb-2">🔍 Early Blight Detected</div>
-                <div className="flex items-center gap-2 justify-center">
-                  <div className="w-full bg-emerald-700 rounded-full h-2 max-w-[200px]">
-                    <div className="bg-white h-2 rounded-full animate-pulse" style={{width: '94%'}}></div>
+                <div className="flex items-center gap-3 justify-center mb-2">
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  <div className="text-white font-bold text-lg">
+                    {scanProgress || 'Processing...'}
                   </div>
                 </div>
+                {!isModelLoading && (
+                  <div className="flex items-center gap-2 justify-center">
+                    <div className="w-full bg-emerald-700 rounded-full h-2 max-w-[200px]">
+                      <div className="bg-white h-2 rounded-full animate-pulse" style={{ width: '94%' }}></div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
         {/* Bottom instruction text */}
-        {!isLoading && (
+        {!isLoading && !isModelLoading && !error && (
           <div className="absolute bottom-20 left-0 right-0 text-center px-4">
             <p className="text-white text-sm bg-black bg-opacity-50 backdrop-blur-sm rounded-lg py-2 px-4 inline-block">
               Position leaf within the frame
@@ -162,12 +205,22 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
           </div>
         )}
 
+        {/* Model Loading Message */}
+        {isModelLoading && !error && (
+          <div className="absolute bottom-20 left-0 right-0 text-center px-4">
+            <div className="text-white text-sm bg-blue-600 bg-opacity-90 backdrop-blur-sm rounded-lg py-3 px-4 inline-block">
+              <Loader2 className="w-4 h-4 inline-block mr-2 animate-spin" />
+              Loading offline AI model...
+            </div>
+          </div>
+        )}
+
         {/* Capture Button */}
-        {!isLoading && (
+        {!isLoading && !isModelLoading && !error && (
           <div className="absolute bottom-6 left-0 right-0 flex justify-center">
             <button
               onClick={handleCapture}
-              disabled={isLoading}
+              disabled={isLoading || isModelLoading}
               className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center">
