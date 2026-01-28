@@ -1,9 +1,11 @@
 'use client';
 
 import Link from "next/link";
-import { Camera, Satellite, Sun, Droplets, Wind } from "lucide-react";
+import { Sun, Droplets, Wind } from "lucide-react";
 import { useState } from "react";
 import { DiseaseScanner } from "@/components/DiseaseScanner";
+import { useI18n } from "@/contexts/I18nContext";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface ScanResult {
   disease: string;
@@ -15,6 +17,7 @@ interface ScanResult {
 export default function Home() {
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const { t } = useI18n();
 
   const handleScanResult = (result: ScanResult) => {
     setScanResult(result);
@@ -24,21 +27,21 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-6 py-4 shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-4 shadow-lg">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
               <span className="text-2xl">🌾</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold">FarmScan</h1>
-              <p className="text-sm text-emerald-100">सटीक शेती</p>
+              <h1 className="text-xl font-bold">{t("dashboard.title", "FarmScan")}</h1>
+              <p className="text-xs sm:text-sm text-emerald-100">
+                {t("dashboard.subtitle", "Precision farming for every farmer")}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span>EN</span>
-            <span>/</span>
-            <span className="text-emerald-200">MR</span>
+          <div className="flex items-center">
+            <LanguageSwitcher />
           </div>
         </div>
       </div>
@@ -71,7 +74,9 @@ export default function Home() {
 
         {/* Choose Service Section */}
         <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Choose Service</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            {t("dashboard.chooseService", "Choose Service")}
+          </h2>
           
           {/* Scan Leaf - Offline Service */}
           <div 
@@ -84,18 +89,25 @@ export default function Home() {
                   📷
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">Scan Leaf</h3>
-                  <p className="text-emerald-100 text-sm">पाने स्कॅन करा</p>
+                  <h3 className="text-xl font-bold text-white">
+                    {t("dashboard.scanLeaf", "Scan Leaf")}
+                  </h3>
+                  <p className="text-emerald-100 text-sm">
+                    {t("dashboard.scanLeafDesc", "Scan crop leaf")}
+                  </p>
                 </div>
               </div>
               <div className="bg-emerald-800 bg-opacity-50 px-3 py-1 rounded-full">
-                <span className="text-white text-xs font-semibold flex items-center gap-1">
-                  ⚡ Offline
-                </span>
+                  <span className="text-white text-xs font-semibold flex items-center gap-1">
+                    ⚡ {t("dashboard.offline", "Offline")}
+                  </span>
               </div>
             </div>
             <p className="text-emerald-50 text-sm">
-              Instant AI disease detection • Works without internet
+              {t(
+                "dashboard.scanLeafDesc",
+                "Instant AI disease detection • Works without internet"
+              )}
             </p>
           </div>
 
@@ -108,18 +120,25 @@ export default function Home() {
                     🛰️
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white">Scan Field</h3>
-                    <p className="text-orange-100 text-sm">शेत स्कॅन करा</p>
+                    <h3 className="text-xl font-bold text-white">
+                      {t("dashboard.scanField", "Scan Field")}
+                    </h3>
+                    <p className="text-orange-100 text-sm">
+                      {t("dashboard.scanFieldSubtitle", "Scan your field from satellite")}
+                    </p>
                   </div>
                 </div>
                 <div className="bg-orange-700 bg-opacity-50 px-3 py-1 rounded-full">
                   <span className="text-white text-xs font-semibold flex items-center gap-1">
-                    🌐 Online
+                    🌐 {t("dashboard.online", "Online")}
                   </span>
                 </div>
               </div>
               <p className="text-orange-50 text-sm">
-                Satellite analysis • Real-time heatmap
+                {t(
+                  "dashboard.scanFieldDesc",
+                  "Satellite analysis • Real-time heatmap"
+                )}
               </p>
             </div>
           </Link>
@@ -178,15 +197,21 @@ export default function Home() {
         <div className="flex justify-around items-center">
           <button className="flex flex-col items-center gap-1 text-emerald-600">
             <span className="text-2xl">🏠</span>
-            <span className="text-xs font-medium">Home</span>
+            <span className="text-xs font-medium">
+              {t("navigation.home", "Home")}
+            </span>
           </button>
           <button className="flex flex-col items-center gap-1 text-gray-400">
             <span className="text-2xl">📊</span>
-            <span className="text-xs font-medium">History</span>
+            <span className="text-xs font-medium">
+              {t("navigation.history", "History")}
+            </span>
           </button>
           <button className="flex flex-col items-center gap-1 text-gray-400">
             <span className="text-2xl">⚙️</span>
-            <span className="text-xs font-medium">Settings</span>
+            <span className="text-xs font-medium">
+              {t("navigation.settings", "Settings")}
+            </span>
           </button>
         </div>
       </div>
