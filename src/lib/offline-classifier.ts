@@ -201,17 +201,25 @@ class OfflineClassifier {
 
   /**
    * Preprocess image for model input (GraphModel expects float images)
+   * Enhanced preprocessing for better disease detection
    */
   private preprocessImage(imageElement: HTMLImageElement | HTMLVideoElement): tf.Tensor4D {
     return tf.tidy(() => {
       // Convert image to tensor
-      const tensor = tf.browser.fromPixels(imageElement);
+      let tensor = tf.browser.fromPixels(imageElement);
 
       // Resize to 224x224
-      const resized = tf.image.resizeBilinear(tensor, [224, 224]);
+      let resized = tf.image.resizeBilinear(tensor, [224, 224]);
 
       // Normalize to [0, 1]
-      const normalized = tf.div(resized, 255);
+      let normalized = tf.div(resized, 255);
+
+      // Enhanced contrast for better disease spot detection
+      // Adjust contrast slightly to help identify disease patterns
+      const mean = normalized.mean();
+      const centered = normalized.sub(mean);
+      const enhanced = centered.mul(1.2).add(mean);
+      normalized = tf.clipByValue(enhanced, 0, 1);
 
       // Add batch dimension
       const batched = normalized.expandDims(0) as tf.Tensor4D;
@@ -328,6 +336,22 @@ class OfflineClassifier {
   }
 
   /**
+   * Get disease information by key
+   */
+  async getDiseaseInfo(diseaseKey: string): Promise<{
+    displayName: string;
+    severity: 'low' | 'medium' | 'high';
+    treatment: string;
+    description: string;
+  }> {
+    const info = DISEASE_INFO[diseaseKey];
+    if (!info) {
+      throw new Error(`Unknown disease: ${diseaseKey}`);
+    }
+    return info;
+  }
+
+  /**
    * Clean up resources
    */
   dispose(): void {
@@ -350,5 +374,6 @@ export const classifyImage = (imageSource: string | HTMLImageElement | HTMLVideo
   classifierInstance.classifyImage(imageSource);
 export const classifyFromWebcam = (videoElement: HTMLVideoElement) => 
   classifierInstance.classifyFromWebcam(videoElement);
+export const getDiseaseInfo = (diseaseKey: string) => classifierInstance.getDiseaseInfo(diseaseKey);
 export const getMemoryInfo = () => classifierInstance.getMemoryInfo();
 export const disposeModel = () => classifierInstance.dispose();

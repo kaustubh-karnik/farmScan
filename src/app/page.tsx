@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Sun, Droplets, Wind, Camera, Satellite, AlertTriangle, Volume2, Home as HomeIcon, TrendingUp, Settings, Leaf, Sparkles, MapPin, ChevronRight, Search, Cloud, Eye, Gauge, SlidersHorizontal, Loader2, CloudRain, CloudSnow, CloudDrizzle, CloudFog } from "lucide-react";
 import { useState, useEffect } from "react";
 import { DiseaseScanner } from "@/components/DiseaseScanner";
@@ -33,6 +34,7 @@ interface WeatherData {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -75,21 +77,21 @@ export default function Home() {
         sunset: sunsetTime.getTime() / 1000,
         city: 'Pune',
       });
-      setWeatherError('API key not configured');
+      setWeatherError(null);
       setWeatherLoading(false);
     };
 
     const fetchWeather = async () => {
-      // Check if API key is configured
-      const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
-      
-      if (!API_KEY || API_KEY === 'demo') {
-        console.info('ℹ️ OpenWeatherMap API key not configured. Using demo weather data.');
-        setDemoWeatherData();
-        return;
-      }
-
       try {
+        // Check if API key is configured
+        const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+        
+        if (!API_KEY || API_KEY === 'demo') {
+          console.info('ℹ️ OpenWeatherMap API key not configured. Using demo weather data.');
+          setDemoWeatherData();
+          return;
+        }
+
         setWeatherLoading(true);
         setWeatherError(null);
 
@@ -143,11 +145,12 @@ export default function Home() {
           city: data.name,
         });
         setWeatherError(null);
+        setWeatherLoading(false);
       } catch (error) {
         console.error('Weather fetch error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch weather';
+        console.info('ℹ️ Using demo weather data due to error:', errorMessage);
         setDemoWeatherData();
-      } finally {
         setWeatherLoading(false);
       }
     };
@@ -388,19 +391,14 @@ export default function Home() {
           {scanResult && (
             <div className="border-2 border-red-200 bg-red-50 rounded-3xl overflow-hidden">
               <div className="bg-gradient-to-r from-red-500 to-rose-600 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <AlertTriangle className="w-5 h-5 text-white" strokeWidth={2.5} />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-bold text-base">Disease Detected</h3>
-                      <p className="text-red-50 text-xs font-medium">रोगाचा शोध लागला</p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-white" strokeWidth={2.5} />
                   </div>
-                  <Badge variant="success" className="text-xs px-2.5 py-1">
-                    {Math.round(scanResult.confidence)}%
-                  </Badge>
+                  <div>
+                    <h3 className="text-white font-bold text-base">Disease Detected</h3>
+                    <p className="text-red-50 text-xs font-medium">रोगाचा शोध लागला</p>
+                  </div>
                 </div>
               </div>
               
@@ -416,7 +414,10 @@ export default function Home() {
                   </p>
                 </div>
 
-                <button className="w-full bg-amber-500 text-white rounded-2xl p-3 font-bold text-sm flex items-center justify-center gap-2 hover:bg-amber-600 transition-all active:scale-[0.98]">
+                <button 
+                  onClick={() => router.push('/coming-soon')}
+                  className="w-full bg-amber-500 text-white rounded-2xl p-3 font-bold text-sm flex items-center justify-center gap-2 hover:bg-amber-600 transition-all active:scale-[0.98]"
+                >
                   <Volume2 className="w-4 h-4" strokeWidth={2.5} />
                   <span>Play Treatment Advice</span>
                 </button>
@@ -448,13 +449,19 @@ export default function Home() {
               {t("navigation.home", "Home")}
             </span>
           </button>
-          <button className="flex flex-col items-center gap-1 p-2.5 rounded-xl text-slate-500 hover:bg-slate-50 min-w-[72px] transition-all">
+          <button 
+            onClick={() => router.push('/coming-soon')}
+            className="flex flex-col items-center gap-1 p-2.5 rounded-xl text-slate-500 hover:bg-slate-50 min-w-[72px] transition-all"
+          >
             <TrendingUp className="w-5 h-5" strokeWidth={2} />
             <span className="text-[10px] font-medium">
               {t("navigation.history", "History")}
             </span>
           </button>
-          <button className="flex flex-col items-center gap-1 p-2.5 rounded-xl text-slate-500 hover:bg-slate-50 min-w-[72px] transition-all">
+          <button 
+            onClick={() => router.push('/coming-soon')}
+            className="flex flex-col items-center gap-1 p-2.5 rounded-xl text-slate-500 hover:bg-slate-50 min-w-[72px] transition-all"
+          >
             <Settings className="w-5 h-5" strokeWidth={2} />
             <span className="text-[10px] font-medium">
               {t("navigation.settings", "Settings")}

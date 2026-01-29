@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import NDVIChart from "@/components/NDVIChart";
 import AnalyzeButton from "../analyze-button";
@@ -15,6 +16,7 @@ interface FieldDashboardProps {
 }
 
 export default function FieldDashboard({ fieldId, polygon, readings }: FieldDashboardProps) {
+    const router = useRouter();
     const [mapUrl, setMapUrl] = useState<string | null>(null);
     const [mapLoading, setMapLoading] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string>("");
@@ -390,10 +392,16 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                     </div>
 
                     <div className="flex gap-3 pt-3 border-t-2 border-stone-200">
-                        <button className="flex-1 bg-white border-2 border-emerald-600 text-emerald-700 rounded-xl py-3 font-bold text-base hover:bg-emerald-50 active:scale-[0.98] transition-all">
+                        <button 
+                            onClick={() => router.push('/coming-soon')}
+                            className="flex-1 bg-white border-2 border-emerald-600 text-emerald-700 rounded-xl py-3 font-bold text-base hover:bg-emerald-50 active:scale-[0.98] transition-all"
+                        >
                             View Report
                         </button>
-                        <button className="flex-1 bg-amber-600 text-white rounded-xl py-3 font-bold text-base hover:bg-amber-700 active:scale-[0.98] transition-all border-2 border-amber-700">
+                        <button 
+                            onClick={() => router.push('/coming-soon')}
+                            className="flex-1 bg-amber-600 text-white rounded-xl py-3 font-bold text-base hover:bg-amber-700 active:scale-[0.98] transition-all border-2 border-amber-700"
+                        >
                             Get Advice
                         </button>
                     </div>

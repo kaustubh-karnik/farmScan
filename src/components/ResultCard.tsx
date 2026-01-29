@@ -65,24 +65,6 @@ export function ResultCard({
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Confidence Score */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="font-semibold text-gray-700">
-                {t('results.confidence')}
-              </label>
-              <span className="text-lg font-bold text-emerald-600">
-                {confidence}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-3 rounded-full transition-all duration-500"
-                style={{ width: `${confidence}%` }}
-              ></div>
-            </div>
-          </div>
-
           {/* Severity Badge */}
           {!isHealthy && (
             <div>
