@@ -47,6 +47,30 @@ export default function Home() {
     setShowScanner(false);
   };
 
+  // Helper function to convert disease name to translation key
+  const getDiseaseTranslationKey = (diseaseName: string): string => {
+    // Convert "Potato Late Blight" -> "potatoLateBlight"
+    // Convert "Healthy Tomato" -> "tomatoHealthy"
+    const normalized = diseaseName
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .replace('bellpepper', 'bellpepper')
+      .replace('potato', 'potato')
+      .replace('tomato', 'tomato');
+    
+    // Capitalize first letter after crop name
+    const parts = diseaseName.split(' ');
+    if (parts.length > 1) {
+      const crop = parts[0].toLowerCase();
+      const disease = parts.slice(1).join('').replace(/\s+/g, '');
+      const diseaseCapitalized = disease.charAt(0).toUpperCase() + disease.slice(1).toLowerCase();
+      const diseaseKey = crop + diseaseCapitalized.replace(/\s+/g, '');
+      return diseaseKey;
+    }
+    
+    return normalized;
+  };
+
   // Get current date
   const currentDate = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -396,8 +420,7 @@ export default function Home() {
                     <AlertTriangle className="w-5 h-5 text-white" strokeWidth={2.5} />
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">Disease Detected</h3>
-                    <p className="text-red-50 text-xs font-medium">रोगाचा शोध लागला</p>
+                    <h3 className="text-white font-bold text-base">{t('results.disease', 'Disease Detected')}</h3>
                   </div>
                 </div>
               </div>
@@ -406,7 +429,9 @@ export default function Home() {
                 <div className="bg-white border border-red-200 rounded-2xl p-3">
                   <div className="flex items-center gap-2 mb-1.5">
                     <Leaf className="w-4 h-4 text-red-600" strokeWidth={2.5} />
-                    <h4 className="font-bold text-slate-900 text-sm">{scanResult.disease}</h4>
+                    <h4 className="font-bold text-slate-900 text-sm">
+                      {t(`diseases.${getDiseaseTranslationKey(scanResult.disease)}`, scanResult.disease)}
+                    </h4>
                   </div>
                   <p className="text-xs text-slate-700 leading-relaxed">
                     {scanResult.disease === "Early Blight" && 
@@ -419,19 +444,19 @@ export default function Home() {
                   className="w-full bg-amber-500 text-white rounded-2xl p-3 font-bold text-sm flex items-center justify-center gap-2 hover:bg-amber-600 transition-all active:scale-[0.98]"
                 >
                   <Volume2 className="w-4 h-4" strokeWidth={2.5} />
-                  <span>Play Treatment Advice</span>
+                  <span>{t('results.playTreatmentAdvice', 'Play Treatment Advice')}</span>
                 </button>
 
                 <div className="grid grid-cols-2 gap-2">
                   <button className="border-2 border-slate-300 bg-white text-slate-700 rounded-2xl p-3 font-bold text-sm hover:bg-slate-50 transition-all active:scale-[0.98]">
-                    Save
+                    {t('results.save', 'Save')}
                   </button>
                   <button 
                     onClick={() => setShowScanner(true)}
                     className="bg-[#6B7B3F] text-white rounded-2xl p-3 font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#5A6A35] transition-all active:scale-[0.98]"
                   >
                     <Camera className="w-4 h-4" strokeWidth={2.5} />
-                    <span>Scan Again</span>
+                    <span>{t('results.scanAgain', 'Scan Again')}</span>
                   </button>
                 </div>
               </div>

@@ -25,8 +25,6 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanProgress, setScanProgress] = useState<string>('');
-  const [selectedCrop, setSelectedCrop] = useState<'potato' | 'tomato' | 'bellpepper'>('potato');
-  const [showCropSelector, setShowCropSelector] = useState(true);
   const { t } = useI18n();
 
   // Load model on mount
@@ -81,35 +79,18 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
         `${p.label}: ${p.confidence.toFixed(1)}%`
       ).join(', '));
       
-      // Filter predictions by selected crop
-      const cropPrefix = selectedCrop === 'bellpepper' ? 'bellpepper_' : `${selectedCrop}_`;
-      const filteredPredictions = result.allPredictions.filter(p => 
-        p.label.startsWith(cropPrefix)
-      );
-
-      if (filteredPredictions.length === 0) {
-        throw new Error(`No ${selectedCrop} diseases detected. Please ensure you're scanning the correct crop.`);
-      }
-
-      // Get top prediction for selected crop
-      const topCropPrediction = filteredPredictions[0];
-      console.log(`Top ${selectedCrop} prediction:`, topCropPrediction);
-
-      // Find disease info
-      const diseaseInfo = await offlineClassifier.getDiseaseInfo(topCropPrediction.label);
-      
       // Show progress with detected disease
-      setScanProgress(`Detected: ${diseaseInfo.displayName}`);
+      setScanProgress(`Detected: ${result.displayName}`);
 
       // Wait a moment to show the result
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Return result
       onResult({
-        disease: diseaseInfo.displayName,
-        confidence: topCropPrediction.confidence,
-        treatment: diseaseInfo.treatment,
-        severity: diseaseInfo.severity,
+        disease: result.displayName,
+        confidence: result.confidence,
+        treatment: result.treatment,
+        severity: result.severity,
       });
     } catch (err) {
       console.error('Classification error:', err);
@@ -153,34 +134,17 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
           `${p.label}: ${p.confidence.toFixed(1)}%`
         ).join(', '));
 
-        // Filter predictions by selected crop
-        const cropPrefix = selectedCrop === 'bellpepper' ? 'bellpepper_' : `${selectedCrop}_`;
-        const filteredPredictions = result.allPredictions.filter(p => 
-          p.label.startsWith(cropPrefix)
-        );
-
-        if (filteredPredictions.length === 0) {
-          throw new Error(`No ${selectedCrop} diseases detected. Please ensure you're scanning the correct crop.`);
-        }
-
-        // Get top prediction for selected crop
-        const topCropPrediction = filteredPredictions[0];
-        console.log(`Top ${selectedCrop} prediction:`, topCropPrediction);
-
-        // Find disease info
-        const diseaseInfo = await offlineClassifier.getDiseaseInfo(topCropPrediction.label);
-
         setScanProgress(
-          `Detected: ${diseaseInfo.displayName}`
+          `Detected: ${result.displayName}`
         );
 
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         onResult({
-          disease: diseaseInfo.displayName,
-          confidence: topCropPrediction.confidence,
-          treatment: diseaseInfo.treatment,
-          severity: diseaseInfo.severity,
+          disease: result.displayName,
+          confidence: result.confidence,
+          treatment: result.treatment,
+          severity: result.severity,
         });
       } catch (err) {
         console.error('Classification error:', err);
@@ -205,97 +169,33 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
     facingMode: 'environment',
   };
 
-  // Show crop selector first
-  if (showCropSelector) {
-    return (
-      <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-md w-full p-6">
-          <h2 className="text-2xl font-bold text-stone-900 mb-2 text-center">Select Your Crop</h2>
-          <p className="text-stone-600 text-sm text-center mb-6">Choose the crop you're scanning for accurate disease detection</p>
-          
-          <div className="space-y-3">
-            <button
-              onClick={() => {
-                setSelectedCrop('potato');
-                setShowCropSelector(false);
-              }}
-              className="w-full bg-amber-50 hover:bg-amber-100 border-2 border-amber-200 rounded-xl p-4 text-left transition-all active:scale-[0.98]"
-            >
-              <div className="font-bold text-stone-900 text-lg mb-1">🥔 Potato</div>
-              <div className="text-sm text-stone-600">Early Blight, Late Blight</div>
-            </button>
-
-            <button
-              onClick={() => {
-                setSelectedCrop('tomato');
-                setShowCropSelector(false);
-              }}
-              className="w-full bg-red-50 hover:bg-red-100 border-2 border-red-200 rounded-xl p-4 text-left transition-all active:scale-[0.98]"
-            >
-              <div className="font-bold text-stone-900 text-lg mb-1">🍅 Tomato</div>
-              <div className="text-sm text-stone-600">Early Blight, Late Blight, Bacterial Spot, Leaf Mold</div>
-            </button>
-
-            <button
-              onClick={() => {
-                setSelectedCrop('bellpepper');
-                setShowCropSelector(false);
-              }}
-              className="w-full bg-green-50 hover:bg-green-100 border-2 border-green-200 rounded-xl p-4 text-left transition-all active:scale-[0.98]"
-            >
-              <div className="font-bold text-stone-900 text-lg mb-1">🫑 Bell Pepper</div>
-              <div className="text-sm text-stone-600">Anthracnose, Bacterial Spot</div>
-            </button>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-full mt-4 bg-stone-200 text-stone-700 rounded-xl py-3 font-semibold hover:bg-stone-300 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
       <div className="bg-stone-900 rounded-3xl overflow-hidden max-w-md w-full shadow-2xl">
         {/* Header - Cleaner Status */}
         <div className="bg-stone-900/95 backdrop-blur-sm p-5 flex justify-between items-center absolute top-0 left-0 right-0 z-10">
-          <div className="flex items-center gap-2">
-            <div className={`px-4 py-2.5 rounded-full flex items-center gap-2.5 ${
-              isModelLoading ? 'bg-amber-500' : isLoading ? 'bg-emerald-600' : 'bg-sky-600'
-            }`}>
-              <span className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></span>
-              <span className="text-white text-sm font-bold flex items-center gap-2">
-                {isModelLoading ? (
-                  <>
-                    <Zap className="w-4 h-4" strokeWidth={2.5} />
-                    <span>{t('scanner.loadingModel', 'Loading AI...')}</span>
-                  </>
-                ) : isLoading ? (
-                  <>
-                    <Search className="w-4 h-4" strokeWidth={2.5} />
-                    <span>{t('scanner.scanning', 'Scanning...')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" strokeWidth={2.5} />
-                    <span>{t('scanner.modelReady', 'Ready')}</span>
-                  </>
-                )}
-              </span>
-            </div>
-            <button
-              onClick={() => setShowCropSelector(true)}
-              disabled={isLoading}
-              className="text-white bg-stone-800/80 hover:bg-stone-700 px-3 py-2.5 rounded-full text-xs font-bold transition-colors disabled:opacity-50"
-              title="Change crop"
-            >
-              {selectedCrop === 'potato' ? '🥔' : selectedCrop === 'tomato' ? '🍅' : '🫑'}
-            </button>
+          <div className={`px-4 py-2.5 rounded-full flex items-center gap-2.5 ${
+            isModelLoading ? 'bg-amber-500' : isLoading ? 'bg-emerald-600' : 'bg-sky-600'
+          }`}>
+            <span className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></span>
+            <span className="text-white text-sm font-bold flex items-center gap-2">
+              {isModelLoading ? (
+                <>
+                  <Zap className="w-4 h-4" strokeWidth={2.5} />
+                  <span>{t('scanner.loadingModel', 'Loading AI...')}</span>
+                </>
+              ) : isLoading ? (
+                <>
+                  <Search className="w-4 h-4" strokeWidth={2.5} />
+                  <span>{t('scanner.scanning', 'Scanning...')}</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" strokeWidth={2.5} />
+                  <span>{t('scanner.modelReady', 'Ready')}</span>
+                </>
+              )}
+            </span>
           </div>
           <button
             onClick={onClose}

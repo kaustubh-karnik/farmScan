@@ -201,25 +201,17 @@ class OfflineClassifier {
 
   /**
    * Preprocess image for model input (GraphModel expects float images)
-   * Enhanced preprocessing for better disease detection
    */
   private preprocessImage(imageElement: HTMLImageElement | HTMLVideoElement): tf.Tensor4D {
     return tf.tidy(() => {
       // Convert image to tensor
-      let tensor = tf.browser.fromPixels(imageElement);
+      const tensor = tf.browser.fromPixels(imageElement);
 
       // Resize to 224x224
-      let resized = tf.image.resizeBilinear(tensor, [224, 224]);
+      const resized = tf.image.resizeBilinear(tensor, [224, 224]);
 
       // Normalize to [0, 1]
-      let normalized = tf.div(resized, 255);
-
-      // Enhanced contrast for better disease spot detection
-      // Adjust contrast slightly to help identify disease patterns
-      const mean = normalized.mean();
-      const centered = normalized.sub(mean);
-      const enhanced = centered.mul(1.2).add(mean);
-      normalized = tf.clipByValue(enhanced, 0, 1);
+      const normalized = tf.div(resized, 255);
 
       // Add batch dimension
       const batched = normalized.expandDims(0) as tf.Tensor4D;

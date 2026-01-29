@@ -23,7 +23,9 @@
     "scanFieldDesc": "उपग्रह विश्लेषण • रीयल-टाइम हीटमॅप",
     "offline": "ऑफलाइन",
     "online": "ऑनलाइन",
-    "lastUpdated": "शेवटचा अपडेट"
+    "lastUpdated": "शेवटचा अपडेट",
+    "detectDisease": "रोग लगेच शोधा",
+    "satellite": "उपग्रह निरीक्षण"
   },
   "scanner": {
     "title": "रोग स्कॅनर",
@@ -50,7 +52,22 @@
     "viewReport": "संपूर्ण अहवाल पहा",
     "scanAgain": "पुन्हा स्कॅन करा",
     "healthy": "आपली पिके निरोगी दिसत आहेत!",
-    "healthyMsg": "सर्वोत्तम परिणामांसाठी निरीक्षण सुरू ठेवा"
+    "healthyMsg": "सर्वोत्तम परिणामांसाठी निरीक्षण सुरू ठेवा",
+    "save": "सेव्ह करा",
+    "playTreatmentAdvice": "उपचार सल्ला ऐका"
+  },
+  "diseases": {
+    "potatoEarlyBlight": "बटाटा अर्ली ब्लाइट",
+    "potatoLateBlight": "बटाटा लेट ब्लाइट",
+    "potatoHealthy": "निरोगी बटाटा",
+    "tomatoEarlyBlight": "टोमॅटो अर्ली ब्लाइट",
+    "tomatoLateBlight": "टोमॅटो लेट ब्लाइट",
+    "tomatoBacterialSpot": "टोमॅटो बॅक्टेरियल स्पॉट",
+    "tomatoLeafMold": "टोमॅटो लीफ मोल्ड",
+    "tomatoHealthy": "निरोगी टोमॅटो",
+    "bellpepperAnthracnose": "भोपळी मिरची अँथ्रॅकनोज",
+    "bellpepperBacterialSpot": "भोपळी मिरची बॅक्टेरियल स्पॉट",
+    "bellpepperHealthy": "निरोगी भोपळी मिरची"
   },
   "treatment": {
     "earlyblight": "अर्ली ब्लाइट • बुरशीमुळे सामान्य बुरशी रोग। जुन्या पानांवर गडद डाग दिसतात।",
