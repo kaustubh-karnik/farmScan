@@ -1,7 +1,8 @@
 {
   "common": {
     "language": "English",
-    "langCode": "en"
+    "langCode": "en",
+    "close": "Close"
   },
   "navigation": {
     "home": "Home",
@@ -42,7 +43,9 @@
     "analyzingPlant": "Analyzing plant...",
     "offlineMode": "Works Offline",
     "errorModelLoad": "Failed to load AI model. Please check your connection.",
-    "errorClassification": "Failed to analyze image. Please try again."
+    "errorClassification": "Failed to analyze image. Please try again.",
+    "detectableDiseases": "Detectable Diseases",
+    "aiCanDetect": "Our AI can identify these crop diseases:"
   },
   "results": {
     "disease": "Disease Detected",

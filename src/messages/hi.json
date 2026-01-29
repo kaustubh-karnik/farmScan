@@ -1,7 +1,8 @@
 {
   "common": {
     "language": "हिन्दी",
-    "langCode": "hi"
+    "langCode": "hi",
+    "close": "बंद करें"
   },
   "navigation": {
     "home": "होम",
@@ -42,7 +43,9 @@
     "analyzingPlant": "पौधे का विश्लेषण कर रहे हैं...",
     "offlineMode": "ऑफ़लाइन काम करता है",
     "errorModelLoad": "AI मॉडल लोड करने में विफल। कृपया अपना कनेक्शन जांचें।",
-    "errorClassification": "छवि का विश्लेषण करने में विफल। कृपया पुनः प्रयास करें।"
+    "errorClassification": "छवि का विश्लेषण करने में विफल। कृपया पुनः प्रयास करें।",
+    "detectableDiseases": "पहचाने जा सकने वाले रोग",
+    "aiCanDetect": "हमारा AI इन फसल रोगों की पहचान कर सकता है:"
   },
   "results": {
     "disease": "रोग का पता चला",

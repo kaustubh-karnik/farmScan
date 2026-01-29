@@ -1,7 +1,8 @@
 {
   "common": {
     "language": "मराठी",
-    "langCode": "mr"
+    "langCode": "mr",
+    "close": "बंद करा"
   },
   "navigation": {
     "home": "होम",
@@ -42,7 +43,9 @@
     "analyzingPlant": "रोपाचे विश्लेषण करत आहे...",
     "offlineMode": "ऑफलाइन कार्य करते",
     "errorModelLoad": "AI मॉडेल लोड करण्यात अयशस्वी. कृपया तुमचे कनेक्शन तपासा.",
-    "errorClassification": "प्रतिमा विश्लेषित करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा."
+    "errorClassification": "प्रतिमा विश्लेषित करण्यात अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+    "detectableDiseases": "ओळखण्यायोग्य रोग",
+    "aiCanDetect": "आमचे AI हे पीक रोग ओळखू शकते:"
   },
   "results": {
     "disease": "रोग आढळला",

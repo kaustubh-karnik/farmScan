@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect, ChangeEvent } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, X, AlertCircle, Loader2, Zap, Search, Check } from 'lucide-react';
+import { Camera, X, AlertCircle, Loader2, Zap, Search, Check, Sparkles } from 'lucide-react';
 import { useI18n } from '@/contexts/I18nContext';
 import offlineClassifier, { type ClassificationResult } from '@/lib/offline-classifier';
 
@@ -25,6 +25,7 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scanProgress, setScanProgress] = useState<string>('');
+  const [showDiseaseList, setShowDiseaseList] = useState(true);
   const { t } = useI18n();
 
   // Load model on mount
@@ -36,10 +37,13 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
         await offlineClassifier.loadModel();
         setScanProgress(t('scanner.modelReady', 'Model ready'));
         setIsModelLoading(false);
+        // Auto-hide disease list after model loads (with small delay)
+        setTimeout(() => setShowDiseaseList(false), 2000);
       } catch (err) {
         console.error('Failed to load model:', err);
         setError(err instanceof Error ? err.message : 'Failed to load AI model');
         setIsModelLoading(false);
+        setShowDiseaseList(false);
       }
     };
 
@@ -287,8 +291,115 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
           </div>
         )}
 
+        {/* Disease List Info - Shows during model loading */}
+        {showDiseaseList && (
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center p-4 z-20">
+            <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-emerald-600" strokeWidth={2.5} />
+                </div>
+                <h3 className="font-bold text-stone-900 text-lg">
+                  {t('scanner.detectableDiseases', 'Detectable Diseases')}
+                </h3>
+              </div>
+              
+              <p className="text-sm text-stone-600 mb-4">
+                {t('scanner.aiCanDetect', 'Our AI can identify these crop diseases:')}
+              </p>
+
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {/* Potato Section */}
+                <div className="bg-amber-50 rounded-xl p-3 border-2 border-amber-200">
+                  <div className="font-bold text-stone-900 text-sm mb-1.5 flex items-center gap-1.5">
+                    <span>🥔</span> Potato
+                  </div>
+                  <ul className="space-y-1">
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Early Blight</span>
+                    </li>
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Late Blight</span>
+                    </li>
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Healthy</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Tomato Section */}
+                <div className="bg-red-50 rounded-xl p-3 border-2 border-red-200">
+                  <div className="font-bold text-stone-900 text-sm mb-1.5 flex items-center gap-1.5">
+                    <span>🍅</span> Tomato
+                  </div>
+                  <ul className="space-y-1">
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Early Blight</span>
+                    </li>
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Late Blight</span>
+                    </li>
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Bacterial Spot</span>
+                    </li>
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Leaf Mold</span>
+                    </li>
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Healthy</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Bell Pepper Section */}
+                <div className="bg-green-50 rounded-xl p-3 border-2 border-green-200">
+                  <div className="font-bold text-stone-900 text-sm mb-1.5 flex items-center gap-1.5">
+                    <span>🫑</span> Bell Pepper
+                  </div>
+                  <ul className="space-y-1">
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Anthracnose</span>
+                    </li>
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Bacterial Spot</span>
+                    </li>
+                    <li className="text-xs text-stone-700 flex items-start gap-1.5">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Healthy</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {isModelLoading && (
+                <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600">
+                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
+                  <span className="text-sm font-semibold">{t('scanner.loadingModel', 'Loading AI model...')}</span>
+                </div>
+              )}
+
+              <button
+                onClick={() => setShowDiseaseList(false)}
+                className="w-full mt-4 bg-stone-200 text-stone-700 rounded-xl py-2.5 font-semibold text-sm hover:bg-stone-300 transition-colors"
+              >
+                {t('common.close', 'Close')}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Model Loading Message */}
-        {isModelLoading && !error && (
+        {isModelLoading && !error && !showDiseaseList && (
           <div className="absolute bottom-32 left-0 right-0 text-center px-6">
             <div className="text-white bg-sky-600/95 backdrop-blur-md rounded-xl py-4 px-6 inline-block shadow-lg">
               <Loader2 className="w-5 h-5 inline-block mr-3 animate-spin" strokeWidth={2.5} />

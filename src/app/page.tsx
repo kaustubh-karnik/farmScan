@@ -40,6 +40,7 @@ export default function Home() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState<string>('');
   const { t } = useI18n();
 
   const handleScanResult = (result: ScanResult) => {
@@ -71,13 +72,15 @@ export default function Home() {
     return normalized;
   };
 
-  // Get current date
-  const currentDate = new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric' 
-  });
+  // Set current date on client side only to avoid hydration mismatch
+  useEffect(() => {
+    setCurrentDate(new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    }));
+  }, []);
 
   // Fetch weather data
   useEffect(() => {
@@ -219,7 +222,7 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-white text-base font-semibold">Hello, Farmers</p>
-                <p className="text-white/80 text-xs mt-0.5">{currentDate}</p>
+                <p className="text-white/80 text-xs mt-0.5" suppressHydrationWarning>{currentDate || ''}</p>
               </div>
             </div>
             <LanguageSwitcher />
@@ -319,7 +322,7 @@ export default function Home() {
                 <div className="relative h-20 mt-4">
                   <div className="absolute inset-0 flex items-end justify-between">
                     <div className="flex-1 text-center">
-                      <div className="text-[10px] text-slate-500 mb-1">{formatTime(weatherData.sunrise)}</div>
+                      <div className="text-[10px] text-slate-500 mb-1" suppressHydrationWarning>{formatTime(weatherData.sunrise)}</div>
                       <div className="text-xs font-bold text-slate-700">Sunrise</div>
                     </div>
                     <div className="flex-1 flex items-center justify-center">
@@ -335,7 +338,7 @@ export default function Home() {
                       </svg>
                     </div>
                     <div className="flex-1 text-center">
-                      <div className="text-[10px] text-slate-500 mb-1">{formatTime(weatherData.sunset)}</div>
+                      <div className="text-[10px] text-slate-500 mb-1" suppressHydrationWarning>{formatTime(weatherData.sunset)}</div>
                       <div className="text-xs font-bold text-slate-700">Sunset</div>
                     </div>
                   </div>
