@@ -14,10 +14,10 @@ export default function AnalyzeButton({ fieldId }: { fieldId: string }) {
         try {
             const res = await fetch(`/api/fields/${fieldId}/analyze`, { method: "POST" });
             if (!res.ok) throw new Error("Failed");
+            router.push(`/fields/${fieldId}`);
             router.refresh();
         } catch (e) {
             alert("Analysis failed");
-        } finally {
             setLoading(false);
         }
     };

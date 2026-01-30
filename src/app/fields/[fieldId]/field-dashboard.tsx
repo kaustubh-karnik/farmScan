@@ -35,6 +35,9 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
         }
     }, [readings]);
 
+    // Get unique dates from readings
+    const uniqueDates = Array.from(new Set(readings.map(r => r.date)));
+
     // Fetch terrain analysis (once on mount)
     useEffect(() => {
         async function fetchTerrain() {
@@ -155,9 +158,9 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
                         >
-                            {readings.slice().reverse().map(r => (
-                                <option key={r.id} value={r.date}>
-                                    {new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {uniqueDates.slice().reverse().map(date => (
+                                <option key={date} value={date}>
+                                    {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </option>
                             ))}
                         </select>

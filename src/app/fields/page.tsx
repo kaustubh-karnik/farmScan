@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 
 import AnalyzeButton from "./analyze-button"; // Client component for the action
+import LogoutButton from "./logout-button"; // Client component for logout
 
 export default async function FieldsPage() {
     const supabase = await createClient();
@@ -32,12 +33,15 @@ export default async function FieldsPage() {
                             <h1 className="text-lg font-semibold text-slate-900 tracking-tight">My Fields</h1>
                             <p className="text-xs text-slate-600 font-medium mt-0.5">माझे शेत</p>
                         </div>
-                        <Link href="/fields/new">
-                            <Button size="default">
-                                <Plus className="w-4 h-4" strokeWidth={2.5} />
-                                <span>Add Field</span>
-                            </Button>
-                        </Link>
+                        <div className="flex items-center gap-2">
+                            <Link href="/fields/new">
+                                <Button size="default">
+                                    <Plus className="w-4 h-4" strokeWidth={2.5} />
+                                    <span>Add Field</span>
+                                </Button>
+                            </Link>
+                            <LogoutButton />
+                        </div>
                     </div>
                 </div>
             </header>

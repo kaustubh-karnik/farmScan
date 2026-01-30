@@ -90,6 +90,16 @@ export default function LoginPage() {
                     </button>
                 </form>
 
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <p className="text-sm font-semibold text-blue-900 mb-2">Test Account Credentials:</p>
+                    <p className="text-sm text-blue-800">
+                        <span className="font-medium">Email:</span> test@test.com
+                    </p>
+                    <p className="text-sm text-blue-800">
+                        <span className="font-medium">Password:</span> password123
+                    </p>
+                </div>
+
                 <div className="text-center text-sm">
                     <button
                         type="button"
