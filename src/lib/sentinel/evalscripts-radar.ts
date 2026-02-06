@@ -10,19 +10,18 @@ function setup() {
 }
 
 function evaluatePixel(sample) {
-  // Convert dB to linear power if input is in dB (usually Sentinel Hub provides linear or dB depending on config)
-  // Assuming linear input for standard GRD evalscripts or converting if needed.
-  // Standard Sentinel Hub S1-GRD units are linear (DN).
-  
-  const vv = sample.VV;
-  const vh = sample.VH;
-  
+  // Convert dB to linear power if needed (Sentinel Hub S1 can be in dB)
+  let vv = sample.VV;
+  let vh = sample.VH;
+  if (vv < 1 && vv > -50) {
+    vv = Math.pow(10, vv / 10);
+    vh = Math.pow(10, vh / 10);
+  }
   if (vv <= 0 || vh <= 0) return [0];
 
   // RVI = (4 * VH) / (VV + VH)
   const rvi = (4 * vh) / (vv + vh);
-  
-  return [rvi];
+  return [Math.min(1, rvi)];
 }
 `;
 

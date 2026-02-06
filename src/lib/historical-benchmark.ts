@@ -51,9 +51,14 @@ export async function compareWithHistoricalBenchmarks(
     const currentDate = new Date();
     const currentDAS = calculateDAS(plantingDate, currentDate);
 
-    // Fetch current season data
-    const currentSeasonStart = new Date(plantingDate);
+    // Fetch current season data (ensure from <= to for Statistics API)
+    let currentSeasonStart = new Date(plantingDate);
     const currentSeasonEnd = new Date();
+    if (currentSeasonStart.getTime() > currentSeasonEnd.getTime()) {
+        // Planting date is in the future: use last 90 days instead
+        currentSeasonStart = new Date(currentSeasonEnd);
+        currentSeasonStart.setDate(currentSeasonStart.getDate() - 90);
+    }
 
     const currentTimeSeries = await getNDVITimeSeries({
         geometry: field.geometry,

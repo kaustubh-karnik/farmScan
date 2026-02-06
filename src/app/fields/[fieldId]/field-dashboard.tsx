@@ -10,9 +10,34 @@ import ManagementZones from "@/components/ManagementZones";
 import HistoricalBenchmark from "@/components/HistoricalBenchmark";
 import EnhancedAlerts from "@/components/EnhancedAlerts";
 import AnalyzeButton from "../analyze-button";
-import { Calendar, MapPin, TrendingUp, AlertCircle, CheckCircle2, AlertTriangle, XCircle, Mountain, Lightbulb, Droplets, Leaf, Zap, Waves, Sprout, FlaskConical, Activity, Download, RefreshCw, Layers } from "lucide-react";
+import FieldGuidance from "@/components/FieldGuidance";
+import { useI18n } from "@/contexts/I18nContext";
+import { Calendar, MapPin, TrendingUp, AlertCircle, CheckCircle2, AlertTriangle, XCircle, Mountain, Lightbulb, Droplets, Leaf, Zap, Waves, Sprout, FlaskConical, Activity, Download, RefreshCw, Layers, Navigation, ChevronLeft, ChevronUp, ChevronDown } from "lucide-react";
 
 const DATE_LOCALE = "en-US";
+
+const CHART_HEIGHT = 220;
+const CHART_MIN_WIDTH = 400;
+
+const MAIN_INDICES = [
+    { id: "ndvi", labelKey: "fieldDetail.cropHealth", descKey: "fieldDetail.cropHealthDesc", Icon: Leaf },
+    { id: "arvi", labelKey: "fieldDetail.cropHealth", descKey: "fieldDetail.cropHealthDesc", Icon: Activity },
+] as const;
+
+const INDEX_DESCRIPTIONS: Record<string, string> = {
+    ndvi: "fieldDetail.cropHealthDesc",
+    arvi: "fieldDetail.cropHealthDesc",
+    ndwi: "fieldDetail.cropHealthDesc",
+    evi: "fieldDetail.cropHealthDesc",
+    ndmi: "fieldDetail.cropHealthDesc",
+    ndre: "fieldDetail.cropHealthDesc",
+};
+
+const MORE_INDICES = [
+    { id: "ndwi", label: "NDWI", Icon: Droplets },
+    { id: "evi", label: "EVI", Icon: Sprout },
+    { id: "ndmi", label: "NDMI", Icon: Waves },
+] as const;
 
 interface FieldInfo {
     name: string;
@@ -35,6 +60,7 @@ interface FieldDashboardProps {
 
 export default function FieldDashboard({ 
     fieldId, 
+    fieldInfo,
     polygon, 
     readings,
     alerts = [],
@@ -61,6 +87,7 @@ export default function FieldDashboard({
     const [terrainLoading, setTerrainLoading] = useState(true);
     const [terrainError, setTerrainError] = useState<string | null>(null);
     const [generatingZones, setGeneratingZones] = useState(false);
+    const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
 
     // Async data states
     const [vciDataState, setVciDataState] = useState<any>(vciData);
@@ -209,7 +236,7 @@ export default function FieldDashboard({
         }
     };
 
-    // Handle Export VRA
+    // Handle Export VRA (JSON)
     const handleExportVRA = async () => {
         try {
             const res = await fetch(`/api/fields/${fieldId}/management-zones?format=vra`);
@@ -227,6 +254,27 @@ export default function FieldDashboard({
             console.error('Export VRA error:', e);
         }
     };
+
+    // Handle Export GeoJSON (for tractor/GIS; uses export route for correct filename)
+    const handleExportGeojson = async () => {
+        try {
+            const res = await fetch(`/api/fields/${fieldId}/management-zones/export`, { credentials: 'include' });
+            if (res.ok) {
+                const disposition = res.headers.get('Content-Disposition');
+                const match = disposition?.match(/filename="(.+?)"/);
+                const filename = match?.[1] ?? `management-zones-${fieldId}.geojson`;
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        } catch (e) {
+            console.error('Export GeoJSON error:', e);
+        }
+    };
     const healthScore = latestReading?.ndvi_mean || 0;
     const healthStatus = healthScore >= 0.7 ? 'Healthy' : healthScore >= 0.4 ? 'Moderate' : 'High Stress';
     const healthColor = healthScore >= 0.7 ? 'bg-green-100 text-green-700 border-green-300' :
@@ -234,6 +282,8 @@ export default function FieldDashboard({
             'bg-red-100 text-red-700 border-red-300';
     const HealthIcon = healthScore >= 0.7 ? CheckCircle2 : healthScore >= 0.4 ? AlertTriangle : XCircle;
     const healthIconColor = healthScore >= 0.7 ? 'text-green-600' : healthScore >= 0.4 ? 'text-yellow-600' : 'text-red-600';
+    const statusColor = healthScore >= 0.7 ? "green" : healthScore >= 0.4 ? "amber" : "red";
+    const StatusIcon = HealthIcon;
 
     const centerLat = polygon.length ? polygon.reduce((s, p) => s + p[0], 0) / polygon.length : 0;
     const centerLng = polygon.length ? polygon.reduce((s, p) => s + p[1], 0) / polygon.length : 0;
@@ -304,6 +354,20 @@ export default function FieldDashboard({
                     <span>{centerLat.toFixed(4)}° N, {centerLng.toFixed(4)}° E</span>
                 </div>
             </div>
+
+            {/* GPS-guided navigation to field center */}
+            <section className="bg-white rounded-2xl border border-slate-200/80 p-4">
+                <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                    <Navigation className="w-5 h-5 text-[#6B7B3F]" strokeWidth={2} />
+                    {t("fieldDetail.guideToField", "Guide me to field")}
+                </h2>
+                <div className="mt-3">
+                    <FieldGuidance
+                        target={{ lat: centerLat, lng: centerLng }}
+                        targetLabel={t("fieldDetail.fieldCenter", "Field center")}
+                    />
+                </div>
+            </section>
 
             {/* Health: Is my crop okay? – one status prominent */}
             <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
@@ -492,6 +556,7 @@ export default function FieldDashboard({
                                 analysisDate={managementZoneDate}
                                 polygon={polygon}
                                 onExportVRA={handleExportVRA}
+                                onExportGeojson={handleExportGeojson}
                             />
                         ) : (
                             <div className="bg-white rounded-xl p-5 border-2 border-purple-200 shadow-md">

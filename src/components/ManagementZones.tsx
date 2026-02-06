@@ -21,9 +21,10 @@ interface ManagementZonesProps {
     analysisDate: string;
     polygon?: [number, number][];
     onExportVRA?: () => void;
+    onExportGeojson?: () => void;
 }
 
-export default function ManagementZones({ zones, analysisDate, polygon, onExportVRA }: ManagementZonesProps) {
+export default function ManagementZones({ zones, analysisDate, polygon, onExportVRA, onExportGeojson }: ManagementZonesProps) {
     const [activeTab, setActiveTab] = useState<'list' | 'map'>('map');
 
     // Calculate map bounds
@@ -126,13 +127,26 @@ export default function ManagementZones({ zones, analysisDate, polygon, onExport
                         <p className="text-xs sm:text-sm text-stone-600 font-medium">Variable Rate Application</p>
                     </div>
                 </div>
-                <button
-                    onClick={onExportVRA}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-bold text-sm hover:from-purple-700 hover:to-purple-800 transition-all shadow-md hover:shadow-lg active:scale-95 w-full sm:w-auto"
-                >
-                    <Download className="w-4 h-4" strokeWidth={2.5} />
-                    Export VRA
-                </button>
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                    {onExportVRA && (
+                        <button
+                            onClick={onExportVRA}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-bold text-sm hover:from-purple-700 hover:to-purple-800 transition-all shadow-md hover:shadow-lg active:scale-95"
+                        >
+                            <Download className="w-4 h-4" strokeWidth={2.5} />
+                            Export VRA
+                        </button>
+                    )}
+                    {onExportGeojson && (
+                        <button
+                            onClick={onExportGeojson}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-md hover:shadow-lg active:scale-95"
+                        >
+                            <Download className="w-4 h-4" strokeWidth={2.5} />
+                            GeoJSON
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* View Toggles */}
