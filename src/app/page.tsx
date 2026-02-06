@@ -64,10 +64,28 @@ export default function Home() {
     return t(`treatment.${scanResult.treatment}`, scanResult.treatment);
   };
 
-  // Get available voices for language
-  const getVoicesForLanguage = (langCode: string): SpeechSynthesisVoice[] => {
+  // Get the best available voice for the language (prefer natural/premium voices)
+  const getBestVoiceForLanguage = (langCode: string): SpeechSynthesisVoice | null => {
     const voices = window.speechSynthesis.getVoices();
-    return voices.filter(v => v.lang.startsWith(langCode));
+    const forLang = voices.filter(v => v.lang.startsWith(langCode.split('-')[0]) || v.lang === langCode);
+    if (forLang.length === 0) return null;
+
+    const prefer = (v: SpeechSynthesisVoice) => {
+      const n = (v.name || '').toLowerCase();
+      let score = 0;
+      // Prefer local (often higher quality)
+      if (v.localService) score += 4;
+      // Prefer known premium/enhanced voices
+      if (n.includes('google') || n.includes('enhanced') || n.includes('premium') || n.includes('neural')) score += 3;
+      if (n.includes('microsoft') || n.includes('samantha') || n.includes('karen') || n.includes('daniel')) score += 2;
+      // Prefer exact lang match (e.g. hi-IN over hi)
+      if (v.lang === langCode) score += 2;
+      if (v.default) score += 1;
+      return score;
+    };
+
+    const sorted = [...forLang].sort((a, b) => prefer(b) - prefer(a));
+    return sorted[0] ?? null;
   };
 
   const handleScanResult = (result: ScanResult) => {
@@ -497,27 +515,22 @@ export default function Home() {
                           utter.pitch = 1.0;
                           utter.volume = 1.0;
 
-                          // Ensure voices are loaded before speaking
-                          if (window.speechSynthesis.getVoices().length === 0) {
-                            window.speechSynthesis.onvoiceschanged = () => {
-                              const voices = getVoicesForLanguage(langCode);
-                              if (voices.length > 0) {
-                                utter.voice = voices[0];
-                                setVoiceAvailable(true);
-                              } else {
-                                setVoiceAvailable(false);
-                              }
-                              window.speechSynthesis.speak(utter);
-                            };
-                          } else {
-                            const voices = getVoicesForLanguage(langCode);
-                            if (voices.length > 0) {
-                              utter.voice = voices[0];
+                          const applyBestVoiceAndSpeak = () => {
+                            const voice = getBestVoiceForLanguage(langCode);
+                            if (voice) {
+                              utter.voice = voice;
                               setVoiceAvailable(true);
                             } else {
                               setVoiceAvailable(false);
                             }
                             window.speechSynthesis.speak(utter);
+                          };
+
+                          // Ensure voices are loaded before speaking
+                          if (window.speechSynthesis.getVoices().length === 0) {
+                            window.speechSynthesis.onvoiceschanged = () => applyBestVoiceAndSpeak();
+                          } else {
+                            applyBestVoiceAndSpeak();
                           }
                         }
                       } catch (err) {

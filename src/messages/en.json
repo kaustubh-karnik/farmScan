@@ -7,6 +7,7 @@
   "navigation": {
     "home": "Home",
     "history": "History",
+    "shop": "Shop",
     "settings": "Settings"
   },
   "dashboard": {
@@ -92,6 +93,23 @@
     "irrigationNeeds": "Irrigation Needs",
     "viewReport": "View Report",
     "getAdvice": "Get Advice"
+  },
+  "shop": {
+    "title": "Market Intelligence",
+    "subtitle": "Smart selling insights for farmers",
+    "selectCrop": "Select crop",
+    "price": "Price",
+    "priceTrends": "Real-time price trends",
+    "priceTrendsDesc": "Based on regional crop health. See how prices move in your area.",
+    "sellTiming": "Sell timing alerts",
+    "sellTimingDesc": "Get alerted when it's a good time to sell, so you don't miss opportunities.",
+    "pricePrediction": "Price predictions",
+    "pricePredictionDesc": "Predict price changes using disease outbreak and crop health data.",
+    "noData": "No price data for this crop yet.",
+    "noAlerts": "No sell timing alerts right now. Add fields and run analysis to get personalised alerts.",
+    "noPredictions": "No predictions for this crop yet.",
+    "confidence": "confidence",
+    "comingSoon": "Market Intelligence features are coming soon."
   },
   "fields": {
     "myFields": "My Fields",
