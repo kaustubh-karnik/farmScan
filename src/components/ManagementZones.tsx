@@ -1,8 +1,20 @@
 "use client";
 
-import { Layers, RefreshCw, TrendingUp, TrendingDown, Minus, Package, Sparkles, CheckCircle2, AlertCircle, Map as MapIcon } from "lucide-react";
+import { Layers, RefreshCw, TrendingUp, TrendingDown, Minus, Package, Sparkles, CheckCircle2, AlertCircle, Map as MapIcon, Info } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+// Removed import L from "leaflet" to avoid SSR window error
+
+// Dynamically import map component with no SSR
+const ZoneMap = dynamic(() => import("./ZoneMap"), { 
+    ssr: false,
+    loading: () => (
+        <div className="bg-stone-900 rounded-xl overflow-hidden shadow-inner border border-stone-800 relative z-0 h-[400px] flex items-center justify-center">
+            <div className="animate-spin w-8 h-8 border-4 border-stone-600 border-t-stone-400 rounded-full"></div>
+        </div>
+    )
+});
 
 interface Zone {
     zoneNumber: number;
@@ -24,43 +36,24 @@ interface ManagementZonesProps {
     isRegenerating?: boolean;
 }
 
+// Helper to auto-fit map bounds - REMOVED (moved to ZoneMap.tsx)
+
 export default function ManagementZones({ zones, analysisDate, polygon, onRegenerate, isRegenerating = false }: ManagementZonesProps) {
     const [activeTab, setActiveTab] = useState<'list' | 'map'>('map');
 
-    // Calculate map bounds
-    const mapBounds = useMemo(() => {
+    // Calculate map bounds for Leaflet
+    const leafletBounds = useMemo(() => {
         if (!polygon || polygon.length === 0) return null;
-        
-        // Debug
-        // console.log("ManagementZones: Processing polygon", polygon);
-        
-        // Ensure we handle both lat/lng and lng/lat arrays if needed, but assuming polygon is [lat, lng] from page.tsx props
+        // polygon is [lat, lng]
         const lats = polygon.map(p => p[0]);
         const lngs = polygon.map(p => p[1]);
-        const minLat = Math.min(...lats);
-        const maxLat = Math.max(...lats);
-        const minLng = Math.min(...lngs);
-        const maxLng = Math.max(...lngs);
-
-        // Debug
-        // console.log("ManagementZones: Map bounds calculated", { minLat, maxLat, minLng, maxLng });
-
-        // Add padding
-        const latPadding = (maxLat - minLat) * 0.1;
-        const lngPadding = (maxLng - minLng) * 0.1;
-        
-        // Validate bounds
-        if (minLat === maxLat || minLng === maxLng) return null;
-
-        return {
-            minLat: minLat - latPadding,
-            maxLat: maxLat + latPadding,
-            minLng: minLng - lngPadding,
-            maxLng: maxLng + lngPadding,
-            width: (maxLng - minLng) + (2 * lngPadding),
-            height: (maxLat - minLat) + (2 * latPadding)
-        };
+        return [
+            [Math.min(...lats), Math.min(...lngs)],
+            [Math.max(...lats), Math.max(...lngs)]
+        ] as any; // Cast as any to avoid L type dependency which requires window
     }, [polygon]);
+
+
 
     const getZoneStyles = (type: string) => {
         switch (type) {
@@ -199,130 +192,12 @@ export default function ManagementZones({ zones, analysisDate, polygon, onRegene
             ) : (
                 <div className="space-y-4">
                     {/* Map Visualization */}
-                    {activeTab === 'map' && mapBounds && (
-                        <div className="bg-stone-900 rounded-xl overflow-hidden shadow-inner aspect-4/3 relative mb-4">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <svg
-                                    className="w-full h-full"
-                                    viewBox={`0 0 ${mapBounds.width} ${mapBounds.height}`}
-                                    preserveAspectRatio="none"
-                                    style={{ transform: 'scale(1, -1)' }} // Invert Y-axis for geographic coordinates
-                                >
-                                    {/* Grid background effect - removed for simpler debugging visualization initially, or keep simple color */}
-                                    <rect x="0" y="0" width={mapBounds.width} height={mapBounds.height} fill="#1c1917" />
-                                    
-                                    {/* Zones */}
-                                    {zones.map((zone, idx) => {
-                                        if (!zone.geometry) {
-                                            console.warn(`Zone ${idx} missing geometry`);
-                                            return null;
-                                        }
-
-                                        // Handle stringified geometry (common from Supabase/PostGIS)
-                                        let geometry = zone.geometry;
-                                        if (typeof geometry === 'string') {
-                                            try {
-                                                geometry = JSON.parse(geometry);
-                                            } catch (e) {
-                                                console.error('Failed to parse zone geometry', e);
-                                                return null;
-                                            }
-                                        }
-                                        
-                                        // Cast geometry to ensure we can access properties
-                                        const geo = geometry as { type: string; coordinates: unknown[] };
-
-                                        // Handle both Polygon and MultiPolygon
-                                        const polygonsToRender: number[][][] = [];
-
-                                        // Normalize type casing
-                                        const type = geo.type.toLowerCase();
-
-                                        if (type === 'polygon') {
-                                            const coords = geo.coordinates as number[][][];
-                                            if (coords?.[0]) {
-                                                polygonsToRender.push(coords[0]);
-                                            }
-                                        } else if (type === 'multipolygon') {
-                                            const coords = geo.coordinates as number[][][][];
-                                            coords?.forEach((poly) => {
-                                                if (poly?.[0]) polygonsToRender.push(poly[0]);
-                                            });
-                                        }
-                                        
-                                        if (polygonsToRender.length === 0) {
-                                            console.warn(`Zone ${idx} has zero polygons to render. Type: ${geo.type}`, JSON.stringify(geo, null, 2));
-                                            return null;
-                                        }
-
-                                        const style = getZoneStyles(zone.zoneType);
-
-                                        return polygonsToRender.map((ring, ringIdx) => {
-                                            // GeoJSON is [lng, lat]. We map to relative coords from minLng/minLat
-                                            // Since we use SVG viewBox tailored to bounds, we just subtract min
-                                            
-                                            const points = ring.map((coord: number[]) => {
-                                                const x = coord[0] - mapBounds.minLng;
-                                                const y = coord[1] - mapBounds.minLat; // Latitude increases upwards, matching inverted SVG Y
-                                                return `${x},${y}`;
-                                            }).join(' ');
-                                            
-                                            // console.log(`Zone ${idx} Ring ${ringIdx} Points sample:`, points.substring(0, 50));
-
-                                            return (
-                                                <polygon
-                                                    key={`map-zone-${idx}-${ringIdx}`}
-                                                    points={points}
-                                                    fill={style.mapFill}
-                                                    stroke={style.mapStroke}
-                                                    strokeWidth={mapBounds.width * 0.005} // Scale stroke relative to map width
-                                                    opacity="0.8"
-                                                    className="hover:opacity-100 transition-opacity cursor-pointer"
-                                                >
-                                                    <title>Zone {zone.zoneNumber}: {zone.zoneType.toUpperCase()}</title>
-                                                </polygon>
-                                            );
-                                        });
-                                    })}
-
-                                    {/* Field Boundary */}
-                                    {polygon && (
-                                        <polygon
-                                            points={polygon.map((p) => {
-                                                // polygon prop is [lat, lng]
-                                                const x = p[1] - mapBounds.minLng;
-                                                const y = p[0] - mapBounds.minLat;
-                                                return `${x},${y}`;
-                                            }).join(' ')}
-                                            fill="none"
-                                            stroke="white"
-                                            strokeWidth={mapBounds.width * 0.008}
-                                            strokeDasharray={`${mapBounds.width * 0.02},${mapBounds.width * 0.02}`}
-                                            opacity="0.6"
-                                        />
-                                    )}
-                                </svg>
-
-                                {/* Legend Overlay */}
-                                <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-md rounded-lg p-3 border border-white/10">
-                                    <div className="text-[10px] text-stone-300 font-bold uppercase mb-2">Zone Productivity</div>
-                                    <div className="flex flex-col gap-1.5">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-sm bg-[#86efac] border border-[#16a34a]"></div>
-                                            <span className="text-xs text-stone-200">High</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-sm bg-[#fcd34d] border border-[#f59e0b]"></div>
-                                            <span className="text-xs text-stone-200">Medium</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-sm bg-[#fecaca] border border-[#dc2626]"></div>
-                                            <span className="text-xs text-stone-200">Low</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    {activeTab === 'map' && leafletBounds && polygon && (
+                        <ZoneMap 
+                             leafletBounds={leafletBounds}
+                             polygon={polygon}
+                             zones={zones}
+                        />
                     )}
 
                     {activeTab === 'list' && zones.map((zone) => {
