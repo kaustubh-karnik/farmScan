@@ -118,11 +118,6 @@ export default async function FieldDetailPage({ params }: { params: Promise<{ fi
 
     return (
         <div className="container mx-auto p-4">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold">{field.name}</h1>
-                <p className="text-gray-600">Crop: {field.crop_type} | Planted: {field.planting_date || 'Not set'}</p>
-            </div>
-
             <FieldDashboard
                 fieldId={field.id}
                 fieldInfo={fieldInfo}
