@@ -25,9 +25,30 @@ import {
     RefreshCw,
     Navigation,
     ChevronLeft,
+    Leaf,
+    Droplets,
+    Sprout,
+    Sun,
+    Eye,
+    Thermometer,
+    Palette,
+    Flower2,
 } from "lucide-react";
 
 const DATE_LOCALE = "en-US";
+
+// Available vegetation indices for the map
+const VEGETATION_INDICES = [
+    { id: "ndvi", label: "NDVI", description: "Crop Health", Icon: Leaf, color: "emerald" },
+    { id: "ndwi", label: "NDWI", description: "Water Content", Icon: Droplets, color: "blue" },
+    { id: "evi", label: "EVI", description: "Enhanced Vegetation", Icon: Sprout, color: "green" },
+    { id: "ndmi", label: "NDMI", description: "Moisture Index", Icon: Waves, color: "cyan" },
+    { id: "ndre", label: "NDRE", description: "Chlorophyll", Icon: Flower2, color: "lime" },
+    { id: "arvi", label: "ARVI", description: "Atmosphere Resistant", Icon: Sun, color: "amber" },
+    { id: "true_color", label: "True Color", description: "Natural View", Icon: Eye, color: "slate" },
+    { id: "false_color", label: "False Color", description: "Infrared View", Icon: Palette, color: "purple" },
+    { id: "psri", label: "PSRI", description: "Senescence", Icon: Thermometer, color: "orange" },
+] as const;
 
 interface FieldInfo {
     name: string;
@@ -117,7 +138,7 @@ export default function FieldDashboard({
     const [mapLoading, setMapLoading] = useState(false);
     const [selectedDate, setSelectedDate] = useState<string>("");
     const [mapBounds, setMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
-    const [selectedIndex] = useState<string>("ndvi");
+    const [selectedIndex, setSelectedIndex] = useState<string>("ndvi");
     const [terrainData, setTerrainData] = useState<{
         elevation: { min: number; max: number };
         slope: { mean: number };
@@ -418,6 +439,60 @@ export default function FieldDashboard({
                             target={{ lat: centerLat, lng: centerLng }}
                             targetLabel={t("fieldDetail.fieldCenter", "Field center")}
                         />
+                    </div>
+
+                    {/* Index Selector */}
+                    <div className="card rounded-2xl p-4">
+                        <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                            {t("fieldDetail.selectIndex", "Select View")}
+                        </h3>
+                        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                            {VEGETATION_INDICES.map(({ id, label, Icon, color }) => {
+                                const isSelected = selectedIndex === id;
+                                const colorClasses: Record<string, { bg: string; text: string; border: string; selectedBg: string }> = {
+                                    emerald: { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", selectedBg: "bg-emerald-600" },
+                                    blue: { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200", selectedBg: "bg-blue-600" },
+                                    green: { bg: "bg-green-50", text: "text-green-600", border: "border-green-200", selectedBg: "bg-green-600" },
+                                    cyan: { bg: "bg-cyan-50", text: "text-cyan-600", border: "border-cyan-200", selectedBg: "bg-cyan-600" },
+                                    lime: { bg: "bg-lime-50", text: "text-lime-600", border: "border-lime-200", selectedBg: "bg-lime-600" },
+                                    amber: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200", selectedBg: "bg-amber-600" },
+                                    slate: { bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-200", selectedBg: "bg-slate-600" },
+                                    purple: { bg: "bg-purple-50", text: "text-purple-600", border: "border-purple-200", selectedBg: "bg-purple-600" },
+                                    orange: { bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-200", selectedBg: "bg-orange-600" },
+                                };
+                                const colors = colorClasses[color] || colorClasses.emerald;
+                                
+                                return (
+                                    <button
+                                        key={id}
+                                        onClick={() => setSelectedIndex(id)}
+                                        className={`flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl border-2 min-w-18 transition-all shrink-0 ${
+                                            isSelected
+                                                ? `${colors.selectedBg} text-white border-transparent shadow-lg`
+                                                : `${colors.bg} ${colors.text} ${colors.border} hover:shadow-md`
+                                        }`}
+                                    >
+                                        <Icon className="w-5 h-5" strokeWidth={2} />
+                                        <span className="text-xs font-bold">{label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {/* Selected index description */}
+                        {VEGETATION_INDICES.find(i => i.id === selectedIndex) && (
+                            <p className="text-xs text-slate-500 mt-2 pl-1">
+                                {VEGETATION_INDICES.find(i => i.id === selectedIndex)?.description}
+                                {selectedIndex === "ndvi" && " – measures vegetation greenness and health"}
+                                {selectedIndex === "ndwi" && " – detects water stress in plants"}
+                                {selectedIndex === "evi" && " – better for high biomass areas"}
+                                {selectedIndex === "ndmi" && " – monitors leaf moisture content"}
+                                {selectedIndex === "ndre" && " – sensitive to chlorophyll variations"}
+                                {selectedIndex === "arvi" && " – corrects for atmospheric effects"}
+                                {selectedIndex === "true_color" && " – natural RGB satellite view"}
+                                {selectedIndex === "false_color" && " – highlights vegetation in red"}
+                                {selectedIndex === "psri" && " – indicates plant stress and aging"}
+                            </p>
+                        )}
                     </div>
 
                     {/* Satellite Map */}
