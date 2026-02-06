@@ -47,19 +47,27 @@ async function getAvailableModels(apiKey: string): Promise<string[]> {
   }
 }
 
+// Prefer NEXT_PUBLIC_ for client/server parity; fallback to server-only GEMINI_API_KEY
+function getGeminiApiKey(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY?.trim() ||
+    process.env.GEMINI_API_KEY?.trim() ||
+    undefined
+  );
+}
+
 export async function POST(request: NextRequest) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    console.error('Gemini API key not configured (check NEXT_PUBLIC_GEMINI_API_KEY or GEMINI_API_KEY in .env.local)');
+    return NextResponse.json(
+      { error: 'Gemini API key not configured' },
+      { status: 500 }
+    );
+  }
+
   try {
     const { type, diseaseName, language } = await request.json();
-
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      console.error('Gemini API key not configured');
-      return NextResponse.json(
-        { error: 'Gemini API key not configured' },
-        { status: 500 }
-      );
-    }
 
     const languageMap: Record<string, string> = {
       en: 'English',
