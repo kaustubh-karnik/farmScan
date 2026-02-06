@@ -1,8 +1,8 @@
 // Service Worker for FarmScan PWA
 // Handles offline caching of app assets and ML model files
 
-const CACHE_NAME = 'farmscan-v1';
-const MODEL_CACHE = 'farmscan-models-v1';
+const CACHE_NAME = 'farmscan-v2';
+const MODEL_CACHE = 'farmscan-models-v2';
 
 // Core app files to cache
 const CORE_ASSETS = [
@@ -16,9 +16,8 @@ const CORE_ASSETS = [
 const MODEL_FILES = [
   '/models/image-classifier/model.json',
   '/models/image-classifier/labels.json',
-  '/models/image-classifier/group1-shard1of3.bin',
-  '/models/image-classifier/group1-shard2of3.bin',
-  '/models/image-classifier/group1-shard3of3.bin',
+  '/models/image-classifier/group1-shard1of2.bin',
+  '/models/image-classifier/group1-shard2of2.bin',
 ];
 
 // Install event - cache core assets

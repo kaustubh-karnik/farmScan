@@ -7,9 +7,9 @@ import * as tf from '@tensorflow/tfjs';
 
 // Disease labels mapping
 const DISEASE_LABELS = [
-  'bellpepper_anthracnose',
-  'bellpepper_bacterial_spot',
-  'bellpepper_healthy',
+  'corn_common_rust',
+  'corn_healthy',
+  'corn_northern_leaf_blight',
   'potato_early_blight',
   'potato_healthy',
   'potato_late_blight',
@@ -27,23 +27,23 @@ const DISEASE_INFO: Record<string, {
   treatmentKey: string;
   description: string;
 }> = {
-  bellpepper_anthracnose: {
-    displayName: 'Bell Pepper Anthracnose',
-    severity: 'high',
-    treatmentKey: 'anthracnose',
-    description: 'Fungal disease causing dark, sunken lesions on peppers.',
+  corn_common_rust: {
+    displayName: 'Corn Common Rust',
+    severity: 'medium',
+    treatmentKey: 'commonrust',
+    description: 'Fungal disease causing small, circular to elongate brown pustules on leaves.',
   },
-  bellpepper_bacterial_spot: {
-    displayName: 'Bell Pepper Bacterial Spot',
-    severity: 'high',
-    treatmentKey: 'bacterialspot',
-    description: 'Bacterial infection causing dark spots on leaves and fruits.',
-  },
-  bellpepper_healthy: {
-    displayName: 'Healthy Bell Pepper',
+  corn_healthy: {
+    displayName: 'Healthy Corn',
     severity: 'low',
     treatmentKey: 'healthy',
     description: 'Plant shows no signs of disease. Maintain good practices.',
+  },
+  corn_northern_leaf_blight: {
+    displayName: 'Corn Northern Leaf Blight',
+    severity: 'high',
+    treatmentKey: 'northernleafblight',
+    description: 'Fungal disease causing long, gray-green to tan lesions on leaves.',
   },
   potato_early_blight: {
     displayName: 'Potato Early Blight',
