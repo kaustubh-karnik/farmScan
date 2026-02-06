@@ -4,8 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import NDVIChart from "@/components/NDVIChart";
+import VCIGauge from "@/components/VCIGauge";
+import ManagementZones from "@/components/ManagementZones";
+import HistoricalBenchmark from "@/components/HistoricalBenchmark";
+import EnhancedAlerts from "@/components/EnhancedAlerts";
 import AnalyzeButton from "../analyze-button";
-import { Calendar, MapPin, TrendingUp, AlertCircle, CheckCircle2, AlertTriangle, XCircle, Mountain, Lightbulb, Droplets, Leaf, Zap, Waves, Sprout, FlaskConical, Activity } from "lucide-react";
+import { Calendar, MapPin, TrendingUp, AlertCircle, CheckCircle2, AlertTriangle, XCircle, Mountain, Lightbulb, Droplets, Leaf, Zap, Waves, Sprout, FlaskConical, Activity, Download, RefreshCw, Layers } from "lucide-react";
 
 const FieldMap = dynamic(() => import("@/components/FieldMap"), { ssr: false });
 
@@ -13,9 +17,25 @@ interface FieldDashboardProps {
     fieldId: string;
     polygon: [number, number][];
     readings: any[];
+    alerts?: any[];
+    vciData?: any;
+    managementZones?: any[];
+    managementZoneDate?: string;
+    benchmarkData?: any;
+    statisticalData?: any;
 }
 
-export default function FieldDashboard({ fieldId, polygon, readings }: FieldDashboardProps) {
+export default function FieldDashboard({ 
+    fieldId, 
+    polygon, 
+    readings,
+    alerts = [],
+    vciData,
+    managementZones = [],
+    managementZoneDate,
+    benchmarkData,
+    statisticalData
+}: FieldDashboardProps) {
     const router = useRouter();
     const [mapUrl, setMapUrl] = useState<string | null>(null);
     const [mapLoading, setMapLoading] = useState(false);
@@ -26,6 +46,63 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
     const [sarData, setSarData] = useState<any>(null);
     const [terrainLoading, setTerrainLoading] = useState(true);
     const [terrainError, setTerrainError] = useState<string | null>(null);
+    const [generatingZones, setGeneratingZones] = useState(false);
+
+    // Async data states
+    const [vciDataState, setVciDataState] = useState<any>(vciData);
+    const [vciLoading, setVciLoading] = useState(!vciData);
+    const [benchmarkDataState, setBenchmarkDataState] = useState<any>(benchmarkData);
+    const [benchmarkLoading, setBenchmarkLoading] = useState(!benchmarkData);
+
+    // Fetch VCI data client-side if not provided
+    useEffect(() => {
+        if (!vciData) {
+            setVciLoading(true);
+            fetch(`/api/fields/${fieldId}/vci`)
+                .then(res => {
+                    if (res.ok) return res.json();
+                    throw new Error("Failed to fetch VCI");
+                })
+                .then(data => {
+                    if (data && !data.error) {
+                        setVciDataState({
+                            vci: data.vci || data.vci_mean, // handle structure variations
+                            ndvi_current: data.ndvi_current,
+                            severity: data.severity,
+                            interpretation: data.interpretation,
+                            recommendations: data.recommendations || []
+                        });
+                    }
+                })
+                .catch(e => console.log("VCI fetch skipped/failed:", e))
+                .finally(() => setVciLoading(false));
+        } else {
+            setVciDataState(vciData);
+            setVciLoading(false);
+        }
+    }, [fieldId, vciData]);
+
+    // Fetch Benchmark data client-side if not provided
+    useEffect(() => {
+        if (!benchmarkData) {
+            setBenchmarkLoading(true);
+            fetch(`/api/fields/${fieldId}/benchmark`)
+                .then(res => {
+                    if (res.ok) return res.json();
+                    throw new Error("Failed to fetch benchmark");
+                })
+                .then(data => {
+                    if (data && !data.error && data.comparison_years) {
+                        setBenchmarkDataState(data);
+                    }
+                })
+                .catch(e => console.log("Benchmark fetch skipped/failed:", e))
+                .finally(() => setBenchmarkLoading(false));
+        } else {
+            setBenchmarkDataState(benchmarkData);
+            setBenchmarkLoading(false);
+        }
+    }, [fieldId, benchmarkData]);
 
     // Set initial selected date to latest reading
     useEffect(() => {
@@ -126,6 +203,44 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
 
     // Calculate health status
     const latestReading = readings[readings.length - 1];
+
+    // Handle Generate Zones
+    const handleGenerateZones = async () => {
+        setGeneratingZones(true);
+        try {
+            const res = await fetch(`/api/fields/${fieldId}/management-zones`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: new Date().toISOString(), threshold: 0.1 })
+            });
+            if (res.ok) {
+                router.refresh();
+            }
+        } catch (e) {
+            console.error('Generate zones error:', e);
+        } finally {
+            setGeneratingZones(false);
+        }
+    };
+
+    // Handle Export VRA
+    const handleExportVRA = async () => {
+        try {
+            const res = await fetch(`/api/fields/${fieldId}/management-zones?format=vra`);
+            if (res.ok) {
+                const vraMap = await res.json();
+                const blob = new Blob([JSON.stringify(vraMap, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `vra-map-${fieldId}-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        } catch (e) {
+            console.error('Export VRA error:', e);
+        }
+    };
     const healthScore = latestReading?.ndvi_mean || 0;
     const healthStatus = healthScore >= 0.7 ? 'Healthy' : healthScore >= 0.4 ? 'Moderate' : 'High Stress';
     const healthColor = healthScore >= 0.7 ? 'bg-green-100 text-green-700 border-green-300' :
@@ -329,7 +444,7 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                                         }}
                                     />
                                 </div>
-                                {/* Field Boundary Overlay */}
+                                {/* Field Boundary & Zone Overlays */}
                                 {mapBounds && (
                                     <svg 
                                         className="absolute inset-0 w-full h-full pointer-events-none" 
@@ -340,25 +455,28 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                                             transformOrigin: 'center center'
                                         }}
                                     >
+                                        {/* Field Boundary - dashed outline */}
                                         <polygon 
                                             points={polygon.map((p) => {
-                                                // Map field coordinates to the expanded bounds
                                                 const x = ((p[1] - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * 100;
                                                 const y = ((mapBounds.maxLat - p[0]) / (mapBounds.maxLat - mapBounds.minLat)) * 100;
                                                 return `${x},${y}`;
                                             }).join(' ')}
                                             fill="none"
                                             stroke="#3b82f6"
-                                            strokeWidth="0.5"
+                                            strokeWidth="0.6"
                                             strokeDasharray="2,1.5"
                                             opacity="1"
                                         />
                                     </svg>
                                 )}
-                                {/* Legend for boundary */}
-                                <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                                    <div className="w-4 h-0.5 border-t-2 border-dashed border-blue-400"></div>
-                                    <span>Field Boundary</span>
+                                
+                                {/* Legend */}
+                                <div className="absolute top-2 right-2 bg-black bg-opacity-80 text-white text-xs px-3 py-2 rounded-lg space-y-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-0.5 border-t-2 border-dashed border-blue-400"></div>
+                                        <span>Field Boundary</span>
+                                    </div>
                                 </div>
                             </>
                         ) : (
@@ -410,6 +528,92 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                     </div>
                 </div>
 
+                {/* Enhanced Alerts Section */}
+                {(alerts.length > 0 || statisticalData) && (
+                    <div className="bg-white rounded-xl p-5 border-2 border-red-200 shadow-md">
+                        <h3 className="font-bold text-stone-900 text-lg mb-4 flex items-center gap-2">
+                            <AlertCircle className="w-6 h-6 text-red-600" strokeWidth={2.5} />
+                            Active Alerts & Anomalies
+                        </h3>
+                        <EnhancedAlerts alerts={alerts} statistics={statisticalData} />
+                    </div>
+                )}
+
+                {/* Advanced Features Grid */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                    {/* VCI Gauge */}
+                    {vciLoading ? (
+                         <div className="bg-white rounded-xl p-5 border-2 border-stone-100 shadow-md h-full min-h-[300px] flex flex-col items-center justify-center gap-3 animate-pulse">
+                            <div className="w-12 h-12 bg-stone-200 rounded-full"></div>
+                            <div className="h-4 w-32 bg-stone-200 rounded"></div>
+                            <div className="text-sm text-stone-400">Analyzing drought conditions...</div>
+                        </div>
+                    ) : vciDataState && (
+                        <VCIGauge
+                            vci={vciDataState.vci}
+                            ndvi_current={vciDataState.ndvi_current}
+                            severity={vciDataState.severity}
+                            interpretation={vciDataState.interpretation}
+                            recommendations={vciDataState.recommendations}
+                        />
+                    )}
+
+                    {/* Management Zones - Full width when alone */}
+                    <div className={(!vciDataState && !vciLoading) ? "xl:col-span-2" : ""}>
+                        {managementZones.length > 0 && managementZoneDate ? (
+                            <ManagementZones
+                                zones={managementZones}
+                                analysisDate={managementZoneDate}
+                                polygon={polygon}
+                                onExportVRA={handleExportVRA}
+                            />
+                        ) : (
+                            <div className="bg-white rounded-xl p-5 border-2 border-purple-200 shadow-md">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="bg-purple-100 rounded-lg p-2">
+                                        <Activity className="w-6 h-6 text-purple-700" strokeWidth={2.5} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-stone-900 text-lg">Management Zones</h3>
+                                        <p className="text-sm text-stone-600">Generate productivity zones</p>
+                                    </div>
+                                </div>
+                                <div className="text-center py-6">
+                                    <p className="text-stone-600 mb-4">No zones generated yet</p>
+                                    <button
+                                        onClick={handleGenerateZones}
+                                        disabled={generatingZones}
+                                        className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2 mx-auto"
+                                    >
+                                        {generatingZones ? (
+                                            <>
+                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                                Generating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Activity className="w-4 h-4" />
+                                                Generate Zones
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Historical Benchmark */}
+                {benchmarkLoading ? (
+                     <div className="bg-white rounded-xl p-5 border-2 border-stone-100 shadow-md h-64 flex flex-col items-center justify-center gap-3 animate-pulse">
+                        <div className="w-16 h-16 bg-stone-200 rounded-md"></div>
+                        <div className="h-4 w-48 bg-stone-200 rounded"></div>
+                        <div className="text-sm text-stone-400">Comparing with historical seasons...</div>
+                    </div>
+                ) : benchmarkDataState && (
+                    <HistoricalBenchmark data={benchmarkDataState} />
+                )}
+
                 {/* Advanced Context Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {/* Terrain Risk Card */}
@@ -447,7 +651,7 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                                 {terrainData.recommendations.length > 0 && (
                                     <div className="mt-3 p-2.5 bg-purple-50 rounded-lg text-xs text-stone-700 font-medium border-2 border-purple-200">
                                         <div className="flex items-start gap-2">
-                                            <Lightbulb className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" strokeWidth={2.5} />
+                                            <Lightbulb className="w-4 h-4 text-purple-600 mt-0.5 shrink-0" strokeWidth={2.5} />
                                             <span>{terrainData.recommendations[0]}</span>
                                         </div>
                                     </div>
@@ -502,7 +706,7 @@ export default function FieldDashboard({ fieldId, polygon, readings }: FieldDash
                                 <div className="mt-3 space-y-2">
                                     {sarData.advantages.map((adv: string, i: number) => (
                                         <div key={i} className="text-sm text-stone-700 flex items-start gap-2">
-                                            <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full mt-2 flex-shrink-0"></div>
+                                            <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full mt-2 shrink-0"></div>
                                             <span>{adv}</span>
                                         </div>
                                     ))}
