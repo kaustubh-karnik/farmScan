@@ -18,8 +18,9 @@ async function loadAdviceData(): Promise<AdviceData> {
   
   try {
     const response = await fetch('/advice-data.json');
-    adviceData = await response.json();
-    return adviceData;
+    const data = await response.json() as AdviceData;
+    adviceData = data;
+    return data;
   } catch (error) {
     console.error('Failed to load advice data:', error);
     // Return empty structure if fetch fails
@@ -45,7 +46,7 @@ export async function getTreatmentAdvice(
   const lang = langMap[locale] || 'en';
 
   // Check if online
-  if (navigator.onLine) {
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
     try {
       const geminiAdvice = await getGeminiAdvice('treatment', diseaseName, lang);
       if (geminiAdvice !== null) return geminiAdvice;
@@ -76,7 +77,7 @@ export async function getPreventionAdvice(
   const lang = langMap[locale] || 'en';
 
   // Check if online
-  if (navigator.onLine) {
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
     try {
       const geminiAdvice = await getGeminiAdvice('prevention', diseaseName, lang);
       if (geminiAdvice !== null) return geminiAdvice;

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_KEY;
     
     if (!apiKey) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
@@ -67,7 +67,7 @@ export async function GET() {
         return aIndex - bIndex;
       });
 
-    console.log('Available models:', availableModels.map(m => m.name));
+    // console.log('Available models:', availableModels.map((m: any) => m.name));
 
     return NextResponse.json({
       success: true,

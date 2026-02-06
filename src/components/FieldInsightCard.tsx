@@ -51,19 +51,24 @@ interface FieldInsightCardProps {
 
 export default function FieldInsightCard({ fieldId, data }: FieldInsightCardProps) {
     const [insight, setInsight] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const analyzedKeyRef = useRef<string>("");
+    const dataRef = useRef(data);
+    const hasFetchedRef = useRef(false);
 
-    const generateInsight = useCallback(async (force: boolean | unknown = false) => {
-        const currentKey = `${fieldId}-${data.date}`;
-        // If not forcing (force is falsy), and date/field matched, and insight exists => skip
-        if (!force && currentKey === analyzedKeyRef.current && insight) return;
+    // Keep dataRef current
+    dataRef.current = data;
+
+    const generateInsight = useCallback(async (force: boolean = false) => {
+        const currentKey = `${fieldId}-${dataRef.current.date}`;
+        // If not forcing, and date/field matched => skip
+        if (!force && currentKey === analyzedKeyRef.current) return;
 
         setLoading(true);
         setError(null);
         try {
-            const dataKey = JSON.stringify(data); // Payload is still the full data
+            const dataKey = JSON.stringify(dataRef.current);
             const res = await fetch(`/api/fields/${fieldId}/insight`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -86,12 +91,15 @@ export default function FieldInsightCard({ fieldId, data }: FieldInsightCardProp
         } finally {
             setLoading(false);
         }
-    }, [fieldId, data, insight]);
+    }, [fieldId]);
 
-    // Auto-generate on mount or when critical data (date) changes
+    // Auto-generate on mount or when date changes
     useEffect(() => {
-        generateInsight();
-    }, [generateInsight]);
+        const currentKey = `${fieldId}-${data.date}`;
+        if (currentKey !== analyzedKeyRef.current) {
+            generateInsight();
+        }
+    }, [fieldId, data.date, generateInsight]);
 
     return (
         <div className="card rounded-2xl p-5 border-2 border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white shadow-sm">
@@ -104,7 +112,7 @@ export default function FieldInsightCard({ fieldId, data }: FieldInsightCardProp
                 </div>
                 {!loading && (
                     <button
-                        onClick={generateInsight}
+                        onClick={() => generateInsight(true)}
                         className="text-indigo-600 hover:bg-indigo-50 p-1.5 rounded-full transition-colors"
                         title="Refresh Analysis"
                     >

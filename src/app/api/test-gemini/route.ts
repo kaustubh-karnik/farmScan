@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_KEY;
     
     if (!apiKey) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
@@ -42,7 +42,7 @@ export async function GET() {
         };
       });
 
-    console.log('Available models:', availableModels.map(m => m.name));
+    // console.log('Available models:', availableModels.map((m: any) => m.name));
 
     if (availableModels.length === 0) {
       return NextResponse.json({
@@ -97,7 +97,7 @@ export async function GET() {
         error: `Model ${firstModel.name} test failed`,
         status: testResponse.status,
         details: testResponseText,
-        availableModels: availableModels.map(m => m.name),
+        availableModels: availableModels.map((m: any) => m.name),
         suggestion: 'Try another model or check your API quota'
       }, { status: testResponse.status });
     }
@@ -113,7 +113,7 @@ export async function GET() {
       displayName: firstModel.displayName,
       testedAt: new Date().toISOString(),
       response: testAdvice,
-      availableModels: availableModels.map(m => m.name)
+      availableModels: availableModels.map((m: any) => m.name)
     });
   } catch (error) {
     console.error('Test error:', error);

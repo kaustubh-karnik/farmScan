@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getTreatmentAdvice, getPreventionAdvice } from "@/lib/advice-service";
 
-interface ScanResult {
+export interface ScanResult {
   disease: string;
   confidence: number;
   treatment: string;
