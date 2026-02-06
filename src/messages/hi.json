@@ -75,9 +75,10 @@
     "tomatoBacterialSpot": "टमाटर बैक्टीरियल स्पॉट",
     "tomatoLeafMold": "टमाटर लीफ मोल्ड",
     "tomatoHealthy": "स्वस्थ टमाटर",
-    "bellpepperAnthracnose": "शिमला मिर्च एंथ्रेकनोज",
-    "bellpepperBacterialSpot": "शिमला मिर्च बैक्टीरियल स्पॉट",
-    "bellpepperHealthy": "स्वस्थ शिमला मिर्च"
+    "cornCommonRust": "मक्का कॉमन रस्ट",
+    "cornNorthernLeafBlight": "मक्का नॉर्दर्न लीफ ब्लाइट",
+    "cornHealthy": "स्वस्थ मक्का",
+    "healthyCorn": "स्वस्थ मक्का"
   },
   "treatment": {
     "earlyblight": "अर्ली ब्लाइट • कवक के कारण आम कवक रोग। पुरानी पत्तियों पर गहरे धब्बे दिखते हैं। कॉपर-आधारित कवकनाशक लागू करें। संक्रमित फलों को हटाएं। वायु परिसंचरण में सुधार करें।",

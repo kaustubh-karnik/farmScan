@@ -75,9 +75,10 @@
     "tomatoBacterialSpot": "Tomato Bacterial Spot",
     "tomatoLeafMold": "Tomato Leaf Mold",
     "tomatoHealthy": "Healthy Tomato",
-    "bellpepperAnthracnose": "Bell Pepper Anthracnose",
-    "bellpepperBacterialSpot": "Bell Pepper Bacterial Spot",
-    "bellpepperHealthy": "Healthy Bell Pepper"
+    "cornCommonRust": "Corn Common Rust",
+    "cornNorthernLeafBlight": "Corn Northern Leaf Blight",
+    "cornHealthy": "Healthy Corn",
+    "healthyCorn": "Healthy Corn"
   },
   "treatment": {
     "earlyblight": "Early Blight • Common fungal disease caused by fungus. Appears as dark spots on older leaves. Apply copper-based fungicides. Remove infected fruits. Improve air circulation.",

@@ -274,7 +274,7 @@ export default function Home() {
     const normalized = diseaseName
       .toLowerCase()
       .replace(/\s+/g, '')
-      .replace('bellpepper', 'bellpepper')
+      .replace('corn', 'corn')
       .replace('potato', 'potato')
       .replace('tomato', 'tomato');
 

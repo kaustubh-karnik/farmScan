@@ -359,19 +359,19 @@ export function DiseaseScanner({ onResult, onClose }: DiseaseScannerProps) {
                   </ul>
                 </div>
 
-                {/* Bell Pepper Section */}
+                {/* Corn Section */}
                 <div className="bg-green-50 rounded-xl p-3 border-2 border-green-200">
                   <div className="font-bold text-stone-900 text-sm mb-1.5 flex items-center gap-1.5">
-                    <span>🫑</span> Bell Pepper
+                    <span>🌽</span> Corn
                   </div>
                   <ul className="space-y-1">
                     <li className="text-xs text-stone-700 flex items-start gap-1.5">
                       <span className="text-green-600 mt-0.5">✓</span>
-                      <span>Anthracnose</span>
+                      <span>Common Rust</span>
                     </li>
                     <li className="text-xs text-stone-700 flex items-start gap-1.5">
                       <span className="text-green-600 mt-0.5">✓</span>
-                      <span>Bacterial Spot</span>
+                      <span>Northern Leaf Blight</span>
                     </li>
                     <li className="text-xs text-stone-700 flex items-start gap-1.5">
                       <span className="text-green-600 mt-0.5">✓</span>

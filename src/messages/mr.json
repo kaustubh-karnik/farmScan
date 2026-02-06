@@ -75,9 +75,10 @@
     "tomatoBacterialSpot": "टोमॅटो बॅक्टेरियल स्पॉट",
     "tomatoLeafMold": "टोमॅटो लीफ मोल्ड",
     "tomatoHealthy": "निरोगी टोमॅटो",
-    "bellpepperAnthracnose": "भोपळी मिरची अँथ्रॅकनोज",
-    "bellpepperBacterialSpot": "भोपळी मिरची बॅक्टेरियल स्पॉट",
-    "bellpepperHealthy": "निरोगी भोपळी मिरची"
+    "cornCommonRust": "मका कॉमन रस्ट",
+    "cornNorthernLeafBlight": "मका नॉर्दर्न लीफ ब्लाइट",
+    "cornHealthy": "निरोगी मका",
+    "healthyCorn": "निरोगी मका"
   },
   "treatment": {
     "earlyblight": "अर्ली ब्लाइट • बुरशीमुळे सामान्य बुरशी रोग। जुन्या पानांवर गडद डाग दिसतात। तांबे-आधारित बुरशीनाशक लागू करा। संक्रमित फळ काढून टाका। हवा संचार सुधारा।",
