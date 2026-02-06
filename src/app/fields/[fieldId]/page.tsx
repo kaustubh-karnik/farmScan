@@ -30,7 +30,7 @@ export default async function FieldDetailPage({ params }: { params: Promise<{ fi
         .order("date", { ascending: true });
 
     // Calculate VCI data -> DEFERRED to client
-    const vciData = null;
+    const vciData = undefined;
 
     // Fetch Management Zones
     const { data: managementZones } = await supabase
@@ -43,10 +43,10 @@ export default async function FieldDetailPage({ params }: { params: Promise<{ fi
     // Auto-generation logic removed for performance (can be triggered by client)
 
     // Historical Benchmark -> DEFERRED to client
-    const benchmarkData = null;
+    const benchmarkData = undefined;
 
     // Calculate statistical anomalies (simple version)
-    let statisticalData = null;
+    let statisticalData = undefined;
     if (readings && readings.length >= 10) { // Reduced requirement for demo purposes
         try {
             const ndviValues = readings
