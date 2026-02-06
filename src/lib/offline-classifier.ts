@@ -200,18 +200,24 @@ class OfflineClassifier {
   }
 
   /**
-   * Preprocess image for model input (GraphModel expects float images)
+   * Preprocess image for model input (MobileNetV2 expects [-1, 1] range)
+   * This matches tf.keras.applications.mobilenet_v2.preprocess_input()
    */
   private preprocessImage(imageElement: HTMLImageElement | HTMLVideoElement): tf.Tensor4D {
     return tf.tidy(() => {
       // Convert image to tensor
       const tensor = tf.browser.fromPixels(imageElement);
 
-      // Resize to 224x224
+      // Resize to 224x224 (MobileNetV2 input size)
       const resized = tf.image.resizeBilinear(tensor, [224, 224]);
 
-      // Normalize to [0, 1]
-      const normalized = tf.div(resized, 255);
+      // Cast to float32 for proper division
+      const floatTensor = tf.cast(resized, 'float32');
+
+      // MobileNetV2 preprocessing: scale to [-1, 1] range
+      // This is equivalent to tf.keras.applications.mobilenet_v2.preprocess_input()
+      // Formula: (pixel / 127.5) - 1
+      const normalized = tf.sub(tf.div(floatTensor, 127.5), 1);
 
       // Add batch dimension
       const batched = normalized.expandDims(0) as tf.Tensor4D;
