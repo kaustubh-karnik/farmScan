@@ -37,14 +37,19 @@ export async function middleware(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    // Protected routes
-    if (request.nextUrl.pathname.startsWith("/fields") && !user) {
-        return NextResponse.redirect(new URL("/login", request.url));
+    // Protected routes: send to login with return URL
+    if ((request.nextUrl.pathname.startsWith("/fields") || request.nextUrl.pathname.startsWith("/settings")) && !user) {
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+        return NextResponse.redirect(loginUrl);
     }
 
-    // Auth routes (redirect if already logged in)
+    // Auth routes: if already logged in, redirect to intended page or fields
     if (request.nextUrl.pathname.startsWith("/login") && user) {
-        return NextResponse.redirect(new URL("/fields", request.url));
+        const redirectTo = request.nextUrl.searchParams.get("redirect");
+        const allowed = redirectTo === "/fields" || redirectTo === "/settings" || redirectTo?.startsWith("/fields/");
+        const target = redirectTo && allowed ? redirectTo : "/fields";
+        return NextResponse.redirect(new URL(target, request.url));
     }
 
     return response;

@@ -19,8 +19,13 @@ export async function POST(
 
     try {
         // 1. Fetch Field
-        const { data: field } = await supabase.from("fields").select("geometry, planting_date").eq("id", fieldId).single();
-        if (!field) return NextResponse.json({ error: "Field not found" }, { status: 404 });
+        const { data: field, error: fieldError } = await supabase.from("fields").select("geometry, planting_date").eq("id", fieldId).single();
+        if (fieldError || !field) {
+            return NextResponse.json({ error: "Field not found" }, { status: 404 });
+        }
+        if (!field.geometry) {
+            return NextResponse.json({ error: "Field has no boundary. Add a field boundary to run analysis." }, { status: 400 });
+        }
 
         // 2. Fetch Time Series
         const from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
@@ -83,8 +88,18 @@ export async function POST(
             }
         });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Analysis failed";
         console.error("Analysis Error:", err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        // User-friendly messages for known failures
+        const userMessage =
+            message.includes("Missing Sentinel Hub credentials")
+                ? "Satellite data is not configured. Add SH_CLIENT_ID and SH_CLIENT_SECRET to enable analysis."
+                : message.includes("Sentinel Hub Auth Failed")
+                    ? "Satellite service authentication failed. Check your Sentinel Hub credentials."
+                    : message.includes("Statistics API Error")
+                        ? "Satellite data request failed. The service may be busy or the area has no data."
+                        : message;
+        return NextResponse.json({ error: userMessage }, { status: 500 });
     }
 }

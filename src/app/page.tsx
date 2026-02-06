@@ -3,11 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Sun, Droplets, Wind, Camera, Satellite, AlertTriangle, Volume2, Home as HomeIcon, TrendingUp, Settings, Leaf, Sparkles, MapPin, ChevronRight, Search, Cloud, Eye, Gauge, SlidersHorizontal, Loader2, CloudRain, CloudSnow, CloudDrizzle, CloudFog } from "lucide-react";
+import { Sun, Droplets, Wind, Camera, Satellite, AlertTriangle, Volume2, Leaf, Sparkles, MapPin, ChevronRight, Search, Cloud, Eye, Gauge, SlidersHorizontal, Loader2, CloudRain, CloudSnow, CloudDrizzle, CloudFog } from "lucide-react";
 import { useState, useEffect } from "react";
 import { DiseaseScanner } from "@/components/DiseaseScanner";
 import { useI18n } from "@/contexts/I18nContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { FieldsBottomNav } from "@/app/fields/FieldsBottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -212,9 +213,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#F5F3EE]">
-      {/* Clean Olive Green Header */}
-      <header className="bg-gradient-to-br from-[#6B7B3F] to-[#5A6A35] px-5 pt-4 pb-24 rounded-b-[36px]">
-        <div className="max-w-md mx-auto space-y-4">
+      {/* Clean Olive Green Header - responsive for desktop */}
+      <header className="bg-gradient-to-br from-[#6B7B3F] to-[#5A6A35] px-5 pt-4 pb-24 rounded-b-[36px] md:rounded-b-[48px] md:px-8 md:pt-6 md:pb-28">
+        <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
@@ -243,9 +244,9 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content Card */}
-      <main className="max-w-md mx-auto px-5 -mt-20 pb-24">
-        <div className="bg-white rounded-3xl shadow-xl shadow-black/5 p-6 space-y-5">
+      {/* Main Content Card - responsive width for desktop */}
+      <main className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-5 md:px-8 -mt-20 md:-mt-24 pb-24">
+        <div className="bg-white rounded-3xl shadow-xl shadow-black/5 p-6 md:p-8 space-y-5">
           {/* Enhanced Weather Card */}
           <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 rounded-2xl p-5 border border-blue-100/50">
             {weatherLoading ? (
@@ -468,35 +469,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Bottom Navigation - Olive Theme */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 max-w-md mx-auto">
-        <div className="flex items-center justify-around px-2 py-2.5 safe-area-inset-bottom">
-          <button className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-[#6B7B3F]/10 text-[#6B7B3F] min-w-[72px] transition-all">
-            <HomeIcon className="w-5 h-5" strokeWidth={2.5} />
-            <span className="text-[10px] font-bold">
-              {t("navigation.home", "Home")}
-            </span>
-          </button>
-          <button 
-            onClick={() => router.push('/coming-soon')}
-            className="flex flex-col items-center gap-1 p-2.5 rounded-xl text-slate-500 hover:bg-slate-50 min-w-[72px] transition-all"
-          >
-            <TrendingUp className="w-5 h-5" strokeWidth={2} />
-            <span className="text-[10px] font-medium">
-              {t("navigation.history", "History")}
-            </span>
-          </button>
-          <button 
-            onClick={() => router.push('/coming-soon')}
-            className="flex flex-col items-center gap-1 p-2.5 rounded-xl text-slate-500 hover:bg-slate-50 min-w-[72px] transition-all"
-          >
-            <Settings className="w-5 h-5" strokeWidth={2} />
-            <span className="text-[10px] font-medium">
-              {t("navigation.settings", "Settings")}
-            </span>
-          </button>
-        </div>
-      </nav>
+      <FieldsBottomNav />
 
       {/* Disease Scanner Modal */}
       {showScanner && (
