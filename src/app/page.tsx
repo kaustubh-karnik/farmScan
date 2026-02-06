@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sun, Droplets, Wind, Camera, Satellite, AlertTriangle, Volume2, Leaf, Sparkles, MapPin, ChevronRight, Cloud, Eye, Gauge, Loader2, CloudRain, CloudSnow, CloudFog } from "lucide-react";
+import { Sun, Droplets, Wind, Camera, Satellite, AlertTriangle, Volume2, Leaf, Sparkles, MapPin, ChevronRight, Cloud, Eye, Gauge, Loader2, CloudRain, CloudSnow, CloudFog, Shield, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { DiseaseScanner } from "@/components/DiseaseScanner";
 import { useI18n } from "@/contexts/I18nContext";
@@ -37,8 +37,7 @@ export default function Home() {
   const router = useRouter();
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [adviceVisible, setAdviceVisible] = useState(false);
-  const [voiceAvailable, setVoiceAvailable] = useState<boolean | null>(null);
+  const [expandedSection, setExpandedSection] = useState<'treatment' | 'prevention' | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState<string | null>(null);
@@ -62,6 +61,15 @@ export default function Home() {
       return t('results.healthyMsg');
     }
     return t(`treatment.${scanResult.treatment}`, scanResult.treatment);
+  };
+
+  // Get translated prevention text
+  const getPreventionText = (): string => {
+    if (!scanResult) return '';
+    if (scanResult.treatment === 'healthy') {
+      return t('results.preventionMsg', 'Continue proper crop management and monitor your field regularly for best results');
+    }
+    return t(`prevention.${scanResult.treatment}`, `To prevent ${scanResult.disease}, ensure proper crop rotation, maintain good irrigation practices, and monitor weather conditions closely`);
   };
 
   // Get the best available voice for the language (prefer natural/premium voices)
@@ -91,7 +99,6 @@ export default function Home() {
   const handleScanResult = (result: ScanResult) => {
     setScanResult(result);
     setShowScanner(false);
-    setAdviceVisible(false);
   };
 
   // Helper function to convert disease name to translation key
@@ -463,87 +470,161 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="p-4 space-y-3">
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                  <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-4 space-y-4">
+                {/* Disease Information Card */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+                  <div className="flex items-center gap-2">
                     <Leaf className="w-4 h-4 text-[#6B7B3F]" strokeWidth={2.5} />
                     <h4 className="font-bold text-slate-900 text-sm">
                       {t(`diseases.${getDiseaseTranslationKey(scanResult.disease)}`, scanResult.disease)}
                     </h4>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    {scanResult.treatment === 'healthy'
-                      ? t('results.healthyMsg', 'Continue monitoring for best results')
-                      : t(`treatment.${scanResult.treatment}`, scanResult.treatment)}
-                  </p>
                 </div>
 
-                <div>
+                {/* Treatment Section */}
+                <div className={`border-2 rounded-2xl transition-all overflow-hidden ${
+                  expandedSection === 'treatment' 
+                    ? 'border-amber-400 bg-amber-50' 
+                    : 'border-amber-200 bg-white'
+                }`}>
                   <button
-                    onClick={() => {
-                      if (!scanResult) return;
-                      setAdviceVisible(true);
-                      const treatmentText = getTreatmentText();
-                      try {
-                        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-                          window.speechSynthesis.cancel();
-                          const utter = new SpeechSynthesisUtterance(treatmentText);
-
-                          const langCode = getLanguageCode();
-                          utter.lang = langCode;
-
-                          // Adjust speech rate for better clarity, especially for Marathi
-                          if (locale === 'mr') {
-                            utter.rate = 0.7; // Slower for Marathi clarity
-                          } else if (locale === 'hi') {
-                            utter.rate = 0.85; // Slightly slower for Hindi
-                          } else {
-                            utter.rate = 1.0; // Normal for English
-                          }
-
-                          utter.pitch = 1.0;
-                          utter.volume = 1.0;
-
-                          const applyBestVoiceAndSpeak = () => {
-                            const voice = getBestVoiceForLanguage(langCode);
-                            if (voice) {
-                              utter.voice = voice;
-                              setVoiceAvailable(true);
-                            } else {
-                              setVoiceAvailable(false);
-                            }
-                            window.speechSynthesis.speak(utter);
-                          };
-
-                          // Ensure voices are loaded before speaking
-                          if (window.speechSynthesis.getVoices().length === 0) {
-                            window.speechSynthesis.onvoiceschanged = () => applyBestVoiceAndSpeak();
-                          } else {
-                            applyBestVoiceAndSpeak();
-                          }
-                        }
-                      } catch (err) {
-                        console.error('Failed to play speech:', err);
-                      }
-                    }}
-                    className="w-full bg-amber-500 text-white rounded-2xl p-3 font-bold text-sm flex items-center justify-center gap-2 hover:bg-amber-600 transition-all active:scale-[0.98]"
+                    onClick={() => setExpandedSection(expandedSection === 'treatment' ? null : 'treatment')}
+                    className="w-full p-3.5 flex items-center justify-between font-bold text-sm hover:bg-amber-100/50 transition-colors"
                   >
-                    <Volume2 className="w-4 h-4" strokeWidth={2.5} />
-                    <span>{t('results.playTreatmentAdvice', 'Play Treatment Advice')}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+                        <Zap className="w-4 h-4 text-white" strokeWidth={2.5} />
+                      </div>
+                      <span className="text-amber-900">{t('results.treatment', 'Treatment Plan')}</span>
+                    </div>
+                    <ChevronRight className={`w-5 h-5 text-amber-600 transition-transform ${expandedSection === 'treatment' ? 'rotate-90' : ''}`} strokeWidth={2.5} />
                   </button>
 
-                  {adviceVisible && scanResult && (
-                    <div className="mt-3 space-y-2">
-                      {voiceAvailable === false && locale !== 'en' && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-xs text-amber-800">
-                          <p className="font-semibold mb-1">⚠️ Voice not available</p>
-                          <p>Your device may not have a {locale === 'mr' ? 'Marathi' : 'Hindi'} voice. Reading in English instead.</p>
-                        </div>
-                      )}
-                      <div className="bg-white border border-slate-200 rounded-2xl p-3 text-sm text-slate-800">
-                        <h5 className="font-semibold mb-1">{t('results.treatmentAdvice', 'Treatment Advice')}</h5>
-                        <p className="leading-relaxed">{getTreatmentText()}</p>
+                  {expandedSection === 'treatment' && (
+                    <div className="px-3.5 pb-3.5 space-y-3 border-t border-amber-200">
+                      <div className="bg-white rounded-xl p-3 text-xs text-slate-700 leading-relaxed">
+                        {getTreatmentText()}
                       </div>
+                      <button
+                        onClick={() => {
+                          if (!scanResult) return;
+                          const treatmentText = getTreatmentText();
+                          try {
+                            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                              window.speechSynthesis.cancel();
+                              const utter = new SpeechSynthesisUtterance(treatmentText);
+
+                              const langCode = getLanguageCode();
+                              utter.lang = langCode;
+
+                              if (locale === 'mr') {
+                                utter.rate = 0.7;
+                              } else if (locale === 'hi') {
+                                utter.rate = 0.85;
+                              } else {
+                                utter.rate = 1.0;
+                              }
+
+                              utter.pitch = 1.0;
+                              utter.volume = 1.0;
+
+                              const applyBestVoiceAndSpeak = () => {
+                                const voice = getBestVoiceForLanguage(langCode);
+                                if (voice) {
+                                  utter.voice = voice;
+                                }
+                                window.speechSynthesis.speak(utter);
+                              };
+
+                              if (window.speechSynthesis.getVoices().length === 0) {
+                                window.speechSynthesis.onvoiceschanged = () => applyBestVoiceAndSpeak();
+                              } else {
+                                applyBestVoiceAndSpeak();
+                              }
+                            }
+                          } catch (err) {
+                            console.error('Failed to play speech:', err);
+                          }
+                        }}
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl p-2.5 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                      >
+                        <Volume2 className="w-4 h-4" strokeWidth={2.5} />
+                        <span>{t('results.playTreatmentAdvice', 'Play Audio')}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Prevention Section */}
+                <div className={`border-2 rounded-2xl transition-all overflow-hidden ${
+                  expandedSection === 'prevention' 
+                    ? 'border-[#6B7B3F]/30 bg-[#6B7B3F]/5' 
+                    : 'border-[#6B7B3F]/20 bg-white'
+                }`}>
+                  <button
+                    onClick={() => setExpandedSection(expandedSection === 'prevention' ? null : 'prevention')}
+                    className="w-full p-3.5 flex items-center justify-between font-bold text-sm hover:bg-[#6B7B3F]/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-[#6B7B3F] rounded-lg flex items-center justify-center">
+                        <Shield className="w-4 h-4 text-white" strokeWidth={2.5} />
+                      </div>
+                      <span className="text-[#6B7B3F]">{t('results.prevention', 'Prevention Tips')}</span>
+                    </div>
+                    <ChevronRight className={`w-5 h-5 text-[#6B7B3F] transition-transform ${expandedSection === 'prevention' ? 'rotate-90' : ''}`} strokeWidth={2.5} />
+                  </button>
+
+                  {expandedSection === 'prevention' && (
+                    <div className="px-3.5 pb-3.5 space-y-3 border-t border-[#6B7B3F]/20">
+                      <div className="bg-white rounded-xl p-3 text-xs text-slate-700 leading-relaxed">
+                        {getPreventionText()}
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (!scanResult) return;
+                          const preventionText = getPreventionText();
+                          try {
+                            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                              window.speechSynthesis.cancel();
+                              const utter = new SpeechSynthesisUtterance(preventionText);
+
+                              const langCode = getLanguageCode();
+                              utter.lang = langCode;
+
+                              if (locale === 'mr') {
+                                utter.rate = 0.7;
+                              } else if (locale === 'hi') {
+                                utter.rate = 0.85;
+                              } else {
+                                utter.rate = 1.0;
+                              }
+
+                              utter.pitch = 1.0;
+                              utter.volume = 1.0;
+
+                              const applyBestVoiceAndSpeak = () => {
+                                const voice = getBestVoiceForLanguage(langCode);
+                                if (voice) {
+                                  utter.voice = voice;
+                                }
+                                window.speechSynthesis.speak(utter);
+                              };
+
+                              if (window.speechSynthesis.getVoices().length === 0) {
+                                window.speechSynthesis.onvoiceschanged = () => applyBestVoiceAndSpeak();
+                              } else {
+                                applyBestVoiceAndSpeak();
+                              }
+                            }
+                          } catch (err) {
+                            console.error('Failed to play speech:', err);
+                          }
+                        }}
+                        className="w-full bg-[#6B7B3F] hover:bg-[#5A6A35] text-white rounded-xl p-2.5 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                      >
+                        <Volume2 className="w-4 h-4" strokeWidth={2.5} />
+                        <span>{t('results.playPreventionAdvice', 'Play Audio')}</span>
+                      </button>
                     </div>
                   )}
                 </div>
