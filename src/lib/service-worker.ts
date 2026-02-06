@@ -208,6 +208,48 @@ class ServiceWorkerManager {
   }
 
   /**
+   * Clear model cache and re-download fresh models
+   * Call this when the app starts to ensure latest model is used
+   */
+  async clearModelCache(): Promise<boolean> {
+    if (!this.registration?.active) {
+      console.warn('[SW Manager] No active service worker');
+      // If no SW, try to clear caches directly
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          const modelCaches = cacheNames.filter(name => name.includes('models') || name.includes('farmscan'));
+          await Promise.all(modelCaches.map(name => caches.delete(name)));
+          console.log('[SW Manager] Cleared caches directly:', modelCaches);
+          return true;
+        } catch (error) {
+          console.error('[SW Manager] Direct cache clear failed:', error);
+          return false;
+        }
+      }
+      return false;
+    }
+
+    return new Promise((resolve) => {
+      const messageChannel = new MessageChannel();
+      
+      messageChannel.port1.onmessage = (event) => {
+        console.log('[SW Manager] Clear model cache result:', event.data);
+        resolve(event.data.success || false);
+      };
+
+      if (this.registration?.active) {
+        this.registration.active.postMessage(
+          { type: 'CLEAR_MODEL_CACHE' },
+          [messageChannel.port2]
+        );
+      } else {
+        resolve(false);
+      }
+    });
+  }
+
+  /**
    * Get registration status
    */
   getStatus(): ServiceWorkerStatus {
@@ -233,3 +275,4 @@ export const unregisterServiceWorker = () => swManager.unregister();
 export const cacheModelFiles = () => swManager.cacheModelFiles();
 export const getCacheStatus = () => swManager.getCacheStatus();
 export const getServiceWorkerStatus = () => swManager.getStatus();
+export const clearModelCache = () => swManager.clearModelCache();
