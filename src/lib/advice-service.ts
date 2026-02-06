@@ -48,11 +48,12 @@ export async function getTreatmentAdvice(
   // Check if online
   if (typeof navigator !== 'undefined' && navigator.onLine) {
     try {
-      return await getGeminiAdvice('treatment', diseaseName, lang);
+      const geminiAdvice = await getGeminiAdvice('treatment', diseaseName, lang);
+      if (geminiAdvice !== null) return geminiAdvice;
     } catch (error) {
       console.warn('Gemini API failed, falling back to offline data:', error);
-      return await getOfflineAdvice('treatment', scanResult.treatment, lang);
     }
+    return await getOfflineAdvice('treatment', scanResult.treatment, lang);
   } else {
     return await getOfflineAdvice('treatment', scanResult.treatment, lang);
   }
@@ -78,11 +79,12 @@ export async function getPreventionAdvice(
   // Check if online
   if (typeof navigator !== 'undefined' && navigator.onLine) {
     try {
-      return await getGeminiAdvice('prevention', diseaseName, lang);
+      const geminiAdvice = await getGeminiAdvice('prevention', diseaseName, lang);
+      if (geminiAdvice !== null) return geminiAdvice;
     } catch (error) {
       console.warn('Gemini API failed, falling back to offline data:', error);
-      return await getOfflineAdvice('prevention', scanResult.treatment, lang);
     }
+    return await getOfflineAdvice('prevention', scanResult.treatment, lang);
   } else {
     return await getOfflineAdvice('prevention', scanResult.treatment, lang);
   }
@@ -118,11 +120,12 @@ async function getOfflineAdvice(
 /**
  * Get advice from Gemini API via server route
  */
+/** Returns advice string, or null if Gemini is unavailable (e.g. key not configured) so caller can use offline advice. */
 async function getGeminiAdvice(
   type: 'treatment' | 'prevention',
   diseaseName: string,
   lang: string
-): Promise<string> {
+): Promise<string | null> {
   try {
     console.log('Calling advice API route:', { type, diseaseName, lang });
 
@@ -138,22 +141,27 @@ async function getGeminiAdvice(
       }),
     });
 
-    let data;
+    const responseText = await response.text();
+    let data: { error?: string; details?: string; advice?: string } = {};
     try {
-      data = await response.json();
-    } catch (parseError) {
-      console.error('Failed to parse advice API response:', parseError);
-      throw new Error('Invalid response from advice API');
+      if (responseText) data = JSON.parse(responseText);
+    } catch {
+      data = {};
     }
 
     if (!response.ok) {
-      const errorMessage = data?.error || `HTTP ${response.status}`;
-      const details = data?.details || '';
-      console.error('Advice API Error:', {
-        status: response.status,
-        error: errorMessage,
-        details: details
-      });
+      const errorMessage = data?.error || response.statusText || `HTTP ${response.status}`;
+      const details = data?.details || (responseText && responseText.length < 200 ? responseText : '');
+      const isKeyNotConfigured = errorMessage.includes('Gemini API key not configured');
+      if (isKeyNotConfigured) {
+        return null; // Silent fallback to offline advice
+      }
+      console.error(
+        'Advice API Error:',
+        `status=${response.status}`,
+        `error=${errorMessage}`,
+        details ? `details=${details}` : ''
+      );
       throw new Error(`Advice API error: ${errorMessage}${details ? ` - ${details}` : ''}`);
     }
 
