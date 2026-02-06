@@ -63,6 +63,7 @@
     "save": "Save",
     "playTreatmentAdvice": "Play Audio",
     "playPreventionAdvice": "Play Audio",
+    "stopAudio": "Stop Audio",
     "treatmentAdvice": "Treatment Advice"
   },
   "diseases": {
