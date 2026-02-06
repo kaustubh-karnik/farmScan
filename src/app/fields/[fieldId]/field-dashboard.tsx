@@ -148,6 +148,7 @@ export default function FieldDashboard({
     const [sarData, setSarData] = useState<{ moistureLevel: string; message: string; advantages: string[] } | null>(null);
     const [terrainLoading, setTerrainLoading] = useState(true);
     const [terrainError, setTerrainError] = useState<string | null>(null);
+    const [isRegeneratingZones, setIsRegeneratingZones] = useState(false);
     const [generatingZones, setGeneratingZones] = useState(false);
 
     // Async data states
@@ -297,45 +298,32 @@ export default function FieldDashboard({
         }
     };
 
-    // Handle Export VRA (JSON)
-    const handleExportVRA = async () => {
-        try {
-            const res = await fetch(`/api/fields/${fieldId}/management-zones?format=vra`);
-            if (res.ok) {
-                const vraMap = await res.json();
-                const blob = new Blob([JSON.stringify(vraMap, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `vra-map-${fieldId}-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
+    // Handle Regenerate Zones
+    const handleRegenerateZones = async () => {
+        if (confirm("This will delete all existing management zones and generate new ones. Continue?")) {
+            setIsRegeneratingZones(true);
+            try {
+                const res = await fetch(`/api/fields/${fieldId}/management-zones`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: new Date().toISOString() })
+                });
+                
+                if (!res.ok) {
+                    throw new Error("Failed to regenerate zones");
+                }
+                
+                // Refresh the page to fetch new zones
+                router.refresh();
+            } catch (e) {
+                console.error('Regenerate zones error:', e);
+                alert("Failed to regenerate zones. Please try again.");
+            } finally {
+                setIsRegeneratingZones(false);
             }
-        } catch (e) {
-            console.error('Export VRA error:', e);
         }
     };
 
-    // Handle Export GeoJSON (for tractor/GIS; uses export route for correct filename)
-    const handleExportGeojson = async () => {
-        try {
-            const res = await fetch(`/api/fields/${fieldId}/management-zones/export`, { credentials: 'include' });
-            if (res.ok) {
-                const disposition = res.headers.get('Content-Disposition');
-                const match = disposition?.match(/filename="(.+?)"/);
-                const filename = match?.[1] ?? `management-zones-${fieldId}.geojson`;
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-        } catch (e) {
-            console.error('Export GeoJSON error:', e);
-        }
-    };
     const healthScore = latestReading?.ndvi_mean || 0;
     const healthStatus = healthScore >= 0.7 ? 'Healthy' : healthScore >= 0.4 ? 'Moderate' : 'High Stress';
     const HealthIcon = healthScore >= 0.7 ? CheckCircle2 : healthScore >= 0.4 ? AlertTriangle : XCircle;
@@ -621,8 +609,8 @@ export default function FieldDashboard({
                                     zones={managementZones}
                                     analysisDate={managementZoneDate}
                                     polygon={polygon}
-                                    onExportVRA={handleExportVRA}
-                                    onExportGeojson={handleExportGeojson}
+                                    onRegenerate={handleRegenerateZones}
+                                    isRegenerating={isRegeneratingZones}
                                 />
                             ) : (
                                 <div className="card rounded-2xl p-5 border-l-4 border-l-purple-500">
