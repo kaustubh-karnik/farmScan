@@ -148,6 +148,7 @@ export default function FieldDashboard({
     const [sarData, setSarData] = useState<{ moistureLevel: string; message: string; advantages: string[] } | null>(null);
     const [terrainLoading, setTerrainLoading] = useState(true);
     const [terrainError, setTerrainError] = useState<string | null>(null);
+    const [isRegeneratingZones, setIsRegeneratingZones] = useState(false);
     const [generatingZones, setGeneratingZones] = useState(false);
 
     // Async data states
@@ -297,45 +298,32 @@ export default function FieldDashboard({
         }
     };
 
-    // Handle Export VRA (JSON)
-    const handleExportVRA = async () => {
-        try {
-            const res = await fetch(`/api/fields/${fieldId}/management-zones?format=vra`);
-            if (res.ok) {
-                const vraMap = await res.json();
-                const blob = new Blob([JSON.stringify(vraMap, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `vra-map-${fieldId}-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
+    // Handle Regenerate Zones
+    const handleRegenerateZones = async () => {
+        if (confirm("This will delete all existing management zones and generate new ones. Continue?")) {
+            setIsRegeneratingZones(true);
+            try {
+                const res = await fetch(`/api/fields/${fieldId}/management-zones`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: new Date().toISOString() })
+                });
+                
+                if (!res.ok) {
+                    throw new Error("Failed to regenerate zones");
+                }
+                
+                // Refresh the page to fetch new zones
+                router.refresh();
+            } catch (e) {
+                console.error('Regenerate zones error:', e);
+                alert("Failed to regenerate zones. Please try again.");
+            } finally {
+                setIsRegeneratingZones(false);
             }
-        } catch (e) {
-            console.error('Export VRA error:', e);
         }
     };
 
-    // Handle Export GeoJSON (for tractor/GIS; uses export route for correct filename)
-    const handleExportGeojson = async () => {
-        try {
-            const res = await fetch(`/api/fields/${fieldId}/management-zones/export`, { credentials: 'include' });
-            if (res.ok) {
-                const disposition = res.headers.get('Content-Disposition');
-                const match = disposition?.match(/filename="(.+?)"/);
-                const filename = match?.[1] ?? `management-zones-${fieldId}.geojson`;
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-        } catch (e) {
-            console.error('Export GeoJSON error:', e);
-        }
-    };
     const healthScore = latestReading?.ndvi_mean || 0;
     const healthStatus = healthScore >= 0.7 ? 'Healthy' : healthScore >= 0.4 ? 'Moderate' : 'High Stress';
     const HealthIcon = healthScore >= 0.7 ? CheckCircle2 : healthScore >= 0.4 ? AlertTriangle : XCircle;
@@ -352,29 +340,22 @@ export default function FieldDashboard({
     const centerLng = polygon.length ? polygon.reduce((s, p) => s + p[1], 0) / polygon.length : 0;
 
     return (
-        <div className="min-h-screen bg-[#F5F3EE] pb-32">
-            {/* Container with responsive max-width */}
+        <div className="min-h-screen pb-32">
             <div className="max-w-3xl mx-auto px-4 sm:px-6">
 
-                {/* Header */}
-                <header className="sticky top-0 z-10 bg-[#F5F3EE]/95 backdrop-blur-sm py-3 -mx-4 px-4 sm:-mx-6 sm:px-6">
+                {/* Header – clear, with subtle bar */}
+                <header className="sticky top-0 z-10 -mx-4 px-4 sm:-mx-6 sm:px-6 py-3 bg-[#faf8f4]/90 backdrop-blur-md border-b border-stone-200/60 shadow-[0_1px_0_0_rgba(255,255,255,0.6)_inset]">
                     <div className="flex items-center gap-3">
                         <Link
                             href="/fields"
-                            className="flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-95 transition-all"
+                            className="flex items-center justify-center w-11 h-11 rounded-2xl bg-white/90 border border-stone-200/80 text-stone-700 shadow-sm hover:bg-white hover:shadow hover:border-stone-300 active:scale-95 transition-all"
                             aria-label={t("fields.backToFields", "Back to Fields")}
                         >
                             <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
                         </Link>
-                        <div className="flex-1 min-w-0">
-                            <h1 className="text-lg sm:text-xl font-bold text-slate-900 truncate">
-                                {fieldInfo.name}
-                            </h1>
-                            <p className="text-xs sm:text-sm text-slate-500 truncate">
-                                {fieldInfo.crop_type}
-                                {fieldInfo.planting_date && ` • Planted ${fieldInfo.planting_date}`}
-                            </p>
-                        </div>
+                        <span className="text-lg font-semibold text-stone-800 tracking-tight">
+                            {t("fieldDetail.pageTitle", "Field Details")}
+                        </span>
                     </div>
                 </header>
 
@@ -382,13 +363,15 @@ export default function FieldDashboard({
 
                     {/* Alert Banner */}
                     {alerts.length > 0 && (
-                        <div className="card bg-amber-50 border-amber-200 p-4 rounded-2xl">
+                        <div className="card p-4 rounded-2xl border-amber-200/80 bg-gradient-to-br from-amber-50 to-orange-50/50 shadow-sm">
                             <div className="flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                                    <AlertCircle className="w-5 h-5 text-amber-700" strokeWidth={2.5} />
+                                </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-amber-900">{alerts[0].message}</p>
                                     {alerts.length > 1 && (
-                                        <p className="text-xs text-amber-700 mt-1">+{alerts.length - 1} more alerts</p>
+                                        <p className="text-xs text-amber-800/80 mt-1">+{alerts.length - 1} more alerts</p>
                                     )}
                                 </div>
                             </div>
@@ -399,8 +382,8 @@ export default function FieldDashboard({
                     <div className="card p-4 rounded-2xl">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                                    <Calendar className="w-5 h-5 text-emerald-600" strokeWidth={2} />
+                                <div className="w-11 h-11 rounded-xl bg-[#6B7B3F]/12 flex items-center justify-center shrink-0 border border-[#6B7B3F]/20">
+                                    <Calendar className="w-5 h-5 text-[#5a6b2d]" strokeWidth={2} />
                                 </div>
                                 <select
                                     className="flex-1 sm:flex-none bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 font-medium text-slate-900 text-sm sm:text-base cursor-pointer focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none min-h-11 transition-all"
@@ -428,10 +411,10 @@ export default function FieldDashboard({
                     {/* GPS Navigation Card */}
                     <div className="card p-4 rounded-2xl">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                                <Navigation className="w-5 h-5 text-blue-600" strokeWidth={2} />
+                            <div className="w-11 h-11 rounded-xl bg-sky-100/80 flex items-center justify-center shrink-0 border border-sky-200/80">
+                                <Navigation className="w-5 h-5 text-sky-700" strokeWidth={2} />
                             </div>
-                            <h2 className="text-base font-semibold text-slate-900">
+                            <h2 className="text-base font-semibold text-stone-800">
                                 {t("fieldDetail.guideToField", "Navigate to Field")}
                             </h2>
                         </div>
@@ -443,7 +426,7 @@ export default function FieldDashboard({
 
                     {/* Index Selector */}
                     <div className="card rounded-2xl p-4">
-                        <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                        <h3 className="text-sm font-semibold text-stone-800 mb-3">
                             {t("fieldDetail.selectIndex", "Select View")}
                         </h3>
                         <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
@@ -496,8 +479,8 @@ export default function FieldDashboard({
                     </div>
 
                     {/* Satellite Map */}
-                    <div className="card rounded-2xl overflow-hidden">
-                        <div className="aspect-video sm:aspect-4/3 bg-slate-900 relative">
+                    <div className="card rounded-2xl overflow-hidden border-stone-200/90 shadow-lg">
+                        <div className="aspect-video sm:aspect-4/3 bg-stone-800 relative ring-1 ring-black/5">
                             {mapLoading ? (
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="text-center">
@@ -549,22 +532,22 @@ export default function FieldDashboard({
                         </div>
                     </div>
 
-                    {/* Health Status Card */}
-                    <div className={`card rounded-2xl p-5 border-2 ${healthBorderColor}`}>
+                    {/* Health Status Card – one clear status, strong visual */}
+                    <div className={`card rounded-2xl p-5 border-2 ${healthBorderColor} overflow-hidden relative`}>
                         <div className="flex items-start gap-4">
-                            <div className={`p-3 rounded-xl ${healthBgColor} shrink-0`}>
-                                <HealthIcon className={`w-7 h-7 sm:w-8 sm:h-8 ${healthIconColor}`} strokeWidth={2.5} />
+                            <div className={`p-4 rounded-2xl ${healthBgColor} shrink-0 shadow-inner border border-white/50`}>
+                                <HealthIcon className={`w-8 h-8 sm:w-9 sm:h-9 ${healthIconColor}`} strokeWidth={2.5} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                    <h3 className="text-lg sm:text-xl font-bold text-slate-900">
+                                    <h3 className="text-lg sm:text-xl font-bold text-stone-900">
                                         {t("fieldDetail.fieldHealth", "Field Health")}
                                     </h3>
-                                    <span className={`font-bold text-sm px-3 py-1 rounded-lg border ${healthBadgeStyle}`}>
+                                    <span className={`font-bold text-sm px-3 py-1.5 rounded-xl border-2 ${healthBadgeStyle} shadow-sm`}>
                                         {healthStatus}
                                     </span>
                                 </div>
-                                <p className="text-sm sm:text-base text-slate-700 leading-relaxed">
+                                <p className="text-sm sm:text-base text-stone-700 leading-relaxed">
                                     {healthScore >= 0.7
                                         ? `Excellent crop health detected. NDVI: ${healthScore.toFixed(2)}`
                                         : healthScore >= 0.4
@@ -573,7 +556,7 @@ export default function FieldDashboard({
                                 </p>
                             </div>
                         </div>
-                        <div className="flex gap-3 mt-4 pt-4 border-t border-slate-200">
+                        <div className="flex gap-3 mt-4 pt-4 border-t border-stone-200/80">
                             <button
                                 onClick={() => router.push('/coming-soon')}
                                 className="btn-outline flex-1 text-sm sm:text-base py-2.5 min-h-11"
@@ -591,8 +574,8 @@ export default function FieldDashboard({
 
                     {/* Alerts & Anomalies */}
                     {(alerts.length > 0 || statisticalData) && (
-                        <div className="card rounded-2xl p-5 border-l-4 border-l-red-500">
-                            <h3 className="font-bold text-slate-900 text-base sm:text-lg mb-4 flex items-center gap-2">
+                        <div className="card rounded-2xl p-5 border-l-4 border-l-red-500 bg-gradient-to-r from-red-50/50 to-white">
+                            <h3 className="font-bold text-stone-900 text-base sm:text-lg mb-4 flex items-center gap-2">
                                 <AlertCircle className="w-5 h-5 text-red-600" strokeWidth={2.5} />
                                 {t("fieldDetail.alerts", "Active Alerts")}
                             </h3>
@@ -626,8 +609,8 @@ export default function FieldDashboard({
                                     zones={managementZones}
                                     analysisDate={managementZoneDate}
                                     polygon={polygon}
-                                    onExportVRA={handleExportVRA}
-                                    onExportGeojson={handleExportGeojson}
+                                    onRegenerate={handleRegenerateZones}
+                                    isRegenerating={isRegeneratingZones}
                                 />
                             ) : (
                                 <div className="card rounded-2xl p-5 border-l-4 border-l-purple-500">
