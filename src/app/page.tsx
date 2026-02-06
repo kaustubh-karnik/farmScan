@@ -11,6 +11,7 @@ import { FieldsBottomNav } from "@/app/fields/FieldsBottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getTreatmentAdvice, getPreventionAdvice } from "@/lib/advice-service";
 
 interface ScanResult {
   disease: string;
@@ -38,11 +39,39 @@ export default function Home() {
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [expandedSection, setExpandedSection] = useState<'treatment' | 'prevention' | null>(null);
+  const [treatmentAdvice, setTreatmentAdvice] = useState<string>('');
+  const [preventionAdvice, setPreventionAdvice] = useState<string>('');
+  const [loadingAdvice, setLoadingAdvice] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [isPlayingTreatment, setIsPlayingTreatment] = useState(false);
+  const [isPlayingPrevention, setIsPlayingPrevention] = useState(false);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<string>('');
   const { t, locale } = useI18n();
+
+  // Monitor online/offline status
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      console.log('Status: Online');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      console.log('Status: Offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Map app locales to language codes for Speech Synthesis
   const getLanguageCode = (): string => {
@@ -56,21 +85,158 @@ export default function Home() {
 
   // Get translated treatment text
   const getTreatmentText = (): string => {
-    if (!scanResult) return '';
-    if (scanResult.treatment === 'healthy') {
-      return t('results.healthyMsg');
-    }
-    return t(`treatment.${scanResult.treatment}`, scanResult.treatment);
+    return treatmentAdvice || 'Loading treatment advice...';
   };
 
   // Get translated prevention text
   const getPreventionText = (): string => {
-    if (!scanResult) return '';
-    if (scanResult.treatment === 'healthy') {
-      return t('results.preventionMsg', 'Continue proper crop management and monitor your field regularly for best results');
-    }
-    return t(`prevention.${scanResult.treatment}`, `To prevent ${scanResult.disease}, ensure proper crop rotation, maintain good irrigation practices, and monitor weather conditions closely`);
+    return preventionAdvice || 'Loading prevention advice...';
   };
+
+  // Format advice text for display (parse markdown-style formatting)
+  const formatAdviceText = (text: string, isPreventionSection: boolean = false) => {
+    if (!text) return null;
+    
+    const headerColor = isPreventionSection ? 'text-[#6B7B3F]' : 'text-amber-900';
+    const borderColor = isPreventionSection ? 'border-b-2 border-[#6B7B3F]/30' : 'border-b-2 border-amber-300';
+    const bulletColor = isPreventionSection ? 'text-[#6B7B3F]' : 'text-amber-700';
+
+    return text.split('\n').map((line, index) => {
+      // Handle headers (## text)
+      if (line.startsWith('## ')) {
+        const title = line.replace('## ', '').trim();
+        return (
+          <div key={index} className="mt-3 mb-2">
+            <h3 className={`font-bold text-sm ${headerColor} ${borderColor} pb-1`}>
+              {title}
+            </h3>
+          </div>
+        );
+      }
+      // Handle bullet points (- text or • text)
+      if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
+        const content = line.replace(/^[\s-•]+/, '').trim();
+        return (
+          <div key={index} className="flex gap-2 ml-3 mb-1">
+            <span className={`${bulletColor} font-bold text-lg leading-none`}>•</span>
+            <span className="text-slate-700 text-sm">{content}</span>
+          </div>
+        );
+      }
+      // Handle numbered lists (1. text, 2. text, etc.)
+      if (/^\d+\.\s/.test(line.trim())) {
+        const content = line.replace(/^\d+\.\s/, '').trim();
+        const number = line.match(/^\d+\./)?.[0] || '';
+        return (
+          <div key={index} className="flex gap-2 ml-3 mb-1">
+            <span className={`${bulletColor} font-bold text-sm`}>{number}</span>
+            <span className="text-slate-700 text-sm">{content}</span>
+          </div>
+        );
+      }
+      // Skip empty lines to avoid extra spacing
+      if (line.trim() === '') {
+        return null;
+      }
+      // Regular paragraphs
+      return (
+        <p key={index} className="text-slate-700 mb-2 leading-relaxed text-sm">
+          {line}
+        </p>
+      );
+    }).filter(Boolean);
+  };
+
+  // Translate disease names to selected language
+  const getTranslatedDiseaseName = (diseaseName: string): string => {
+    const diseaseTranslations: Record<string, Record<string, string>> = {
+      'Tomato Early Blight': {
+        en: 'Tomato Early Blight',
+        hi: 'टमाटर अर्ली ब्लाइट',
+        mr: 'टोमाटो अर्ली ब्लाइट'
+      },
+      'Tomato Late Blight': {
+        en: 'Tomato Late Blight',
+        hi: 'टमाटर लेट ब्लाइट',
+        mr: 'टोमाटो लेट ब्लाइट'
+      },
+      'Tomato Leaf Curl': {
+        en: 'Tomato Leaf Curl',
+        hi: 'टमाटर लीफ कर्ल',
+        mr: 'टोमाटो लीफ कर्ल'
+      },
+      'Tomato Septoria Leaf Spot': {
+        en: 'Tomato Septoria Leaf Spot',
+        hi: 'टमाटर सेप्टोरिया लीफ स्पॉट',
+        mr: 'टोमाटो सेप्टोरिया लीफ स्पॉट'
+      },
+      'Tomato Yellow Leaf Curl Virus': {
+        en: 'Tomato Yellow Leaf Curl Virus',
+        hi: 'टमाटर पीला लीफ कर्ल वायरस',
+        mr: 'टोमाटो पिवळी लीफ कर्ल व्हायरस'
+      },
+      'Potato Early Blight': {
+        en: 'Potato Early Blight',
+        hi: 'आलू अर्ली ब्लाइट',
+        mr: 'बटाटा अर्ली ब्लाइट'
+      },
+      'Potato Late Blight': {
+        en: 'Potato Late Blight',
+        hi: 'आलू लेट ब्लाइट',
+        mr: 'बटाटा लेट ब्लाइट'
+      },
+      'Corn Common Rust': {
+        en: 'Corn Common Rust',
+        hi: 'मकई सामान्य रस्ट',
+        mr: 'कुट्टू सामान्य रस्ट'
+      }
+    };
+
+    const translations = diseaseTranslations[diseaseName];
+    if (translations && translations[locale]) {
+      return translations[locale];
+    }
+    return diseaseName; // Fallback to English name if not found
+  };
+
+  // Fetch advice when scan result changes
+  useEffect(() => {
+    if (!scanResult) return;
+
+    setLoadingAdvice(true);
+    const fetchAdvice = async () => {
+      try {
+        const translatedDiseaseName = getTranslatedDiseaseName(scanResult.disease);
+        console.log('Fetching advice for disease:', translatedDiseaseName, 'in language:', locale);
+        const treatment = await getTreatmentAdvice(scanResult, locale, translatedDiseaseName);
+        const prevention = await getPreventionAdvice(scanResult, locale, translatedDiseaseName);
+        
+        console.log('Successfully fetched advice');
+        setTreatmentAdvice(treatment);
+        setPreventionAdvice(prevention);
+      } catch (error) {
+        console.error('Failed to fetch advice:', error);
+        const errorMsg = error instanceof Error ? error.message : 'Failed to fetch advice';
+        console.log('Using offline fallback due to:', errorMsg);
+        
+        // Show error in UI and fallback to translation strings
+        setTreatmentAdvice(
+          scanResult.treatment === 'healthy'
+            ? t('results.healthyMsg')
+            : t(`treatment.${scanResult.treatment}`, scanResult.treatment)
+        );
+        setPreventionAdvice(
+          scanResult.treatment === 'healthy'
+            ? t('results.preventionMsg', 'Continue proper crop management and monitor your field regularly for best results')
+            : t(`prevention.${scanResult.treatment}`, `To prevent ${scanResult.disease}, ensure proper crop rotation, maintain good irrigation practices, and monitor weather conditions closely`)
+        );
+      } finally {
+        setLoadingAdvice(false);
+      }
+    };
+
+    fetchAdvice();
+  }, [scanResult, locale, t]);
 
   // Get the best available voice for the language (prefer natural/premium voices)
   const getBestVoiceForLanguage = (langCode: string): SpeechSynthesisVoice | null => {
@@ -496,60 +662,86 @@ export default function Home() {
                         <Zap className="w-4 h-4 text-white" strokeWidth={2.5} />
                       </div>
                       <span className="text-amber-900">{t('results.treatment', 'Treatment Plan')}</span>
+                      <Badge className={`text-xs font-semibold ${isOnline ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-red-100 text-red-700 border border-red-300'}`}>
+                        {isOnline ? '🟢 Online' : '🔴 Offline'}
+                      </Badge>
                     </div>
                     <ChevronRight className={`w-5 h-5 text-amber-600 transition-transform ${expandedSection === 'treatment' ? 'rotate-90' : ''}`} strokeWidth={2.5} />
                   </button>
 
                   {expandedSection === 'treatment' && (
                     <div className="px-3.5 pb-3.5 space-y-3 border-t border-amber-200">
-                      <div className="bg-white rounded-xl p-3 text-xs text-slate-700 leading-relaxed">
-                        {getTreatmentText()}
+                      <div className="bg-white rounded-xl p-4 text-xs text-slate-700 leading-relaxed min-h-16 max-h-96 overflow-y-auto">
+                        {loadingAdvice && !treatmentAdvice ? (
+                          <div className="flex items-center justify-center w-full">
+                            <Loader2 className="w-4 h-4 text-amber-500 animate-spin mr-2" />
+                            <span className="text-slate-500">Fetching advice...</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {formatAdviceText(getTreatmentText(), false)}
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => {
                           if (!scanResult) return;
-                          const treatmentText = getTreatmentText();
-                          try {
-                            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-                              window.speechSynthesis.cancel();
-                              const utter = new SpeechSynthesisUtterance(treatmentText);
+                          
+                          if (isPlayingTreatment) {
+                            // Stop audio
+                            window.speechSynthesis.cancel();
+                            setIsPlayingTreatment(false);
+                          } else {
+                            // Play audio
+                            const treatmentText = getTreatmentText();
+                            try {
+                              if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                                window.speechSynthesis.cancel();
+                                const utter = new SpeechSynthesisUtterance(treatmentText);
 
-                              const langCode = getLanguageCode();
-                              utter.lang = langCode;
+                                const langCode = getLanguageCode();
+                                utter.lang = langCode;
 
-                              if (locale === 'mr') {
-                                utter.rate = 0.7;
-                              } else if (locale === 'hi') {
-                                utter.rate = 0.85;
-                              } else {
-                                utter.rate = 1.0;
-                              }
-
-                              utter.pitch = 1.0;
-                              utter.volume = 1.0;
-
-                              const applyBestVoiceAndSpeak = () => {
-                                const voice = getBestVoiceForLanguage(langCode);
-                                if (voice) {
-                                  utter.voice = voice;
+                                if (locale === 'mr') {
+                                  utter.rate = 0.7;
+                                } else if (locale === 'hi') {
+                                  utter.rate = 0.85;
+                                } else {
+                                  utter.rate = 1.0;
                                 }
-                                window.speechSynthesis.speak(utter);
-                              };
 
-                              if (window.speechSynthesis.getVoices().length === 0) {
-                                window.speechSynthesis.onvoiceschanged = () => applyBestVoiceAndSpeak();
-                              } else {
-                                applyBestVoiceAndSpeak();
+                                utter.pitch = 1.0;
+                                utter.volume = 1.0;
+
+                                utter.onend = () => {
+                                  setIsPlayingTreatment(false);
+                                };
+
+                                const applyBestVoiceAndSpeak = () => {
+                                  const voice = getBestVoiceForLanguage(langCode);
+                                  if (voice) {
+                                    utter.voice = voice;
+                                  }
+                                  setIsPlayingTreatment(true);
+                                  window.speechSynthesis.speak(utter);
+                                };
+
+                                if (window.speechSynthesis.getVoices().length === 0) {
+                                  window.speechSynthesis.onvoiceschanged = () => applyBestVoiceAndSpeak();
+                                } else {
+                                  applyBestVoiceAndSpeak();
+                                }
                               }
+                            } catch (err) {
+                              console.error('Failed to play speech:', err);
+                              setIsPlayingTreatment(false);
                             }
-                          } catch (err) {
-                            console.error('Failed to play speech:', err);
                           }
                         }}
-                        className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-xl p-2.5 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                        className={`w-full ${isPlayingTreatment ? 'bg-amber-600 hover:bg-amber-700' : 'bg-amber-500 hover:bg-amber-600'} text-white rounded-xl p-2.5 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]`}
                       >
                         <Volume2 className="w-4 h-4" strokeWidth={2.5} />
-                        <span>{t('results.playTreatmentAdvice', 'Play Audio')}</span>
+                        <span>{isPlayingTreatment ? t('results.stopAudio', 'Stop Audio') : t('results.playTreatmentAdvice', 'Play Audio')}</span>
                       </button>
                     </div>
                   )}
@@ -570,60 +762,86 @@ export default function Home() {
                         <Shield className="w-4 h-4 text-white" strokeWidth={2.5} />
                       </div>
                       <span className="text-[#6B7B3F]">{t('results.prevention', 'Prevention Tips')}</span>
+                      <Badge className={`text-xs font-semibold ${isOnline ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-red-100 text-red-700 border border-red-300'}`}>
+                        {isOnline ? '🟢 Online' : '🔴 Offline'}
+                      </Badge>
                     </div>
                     <ChevronRight className={`w-5 h-5 text-[#6B7B3F] transition-transform ${expandedSection === 'prevention' ? 'rotate-90' : ''}`} strokeWidth={2.5} />
                   </button>
 
                   {expandedSection === 'prevention' && (
                     <div className="px-3.5 pb-3.5 space-y-3 border-t border-[#6B7B3F]/20">
-                      <div className="bg-white rounded-xl p-3 text-xs text-slate-700 leading-relaxed">
-                        {getPreventionText()}
+                      <div className="bg-white rounded-xl p-4 text-xs text-slate-700 leading-relaxed min-h-16 max-h-96 overflow-y-auto">
+                        {loadingAdvice && !preventionAdvice ? (
+                          <div className="flex items-center justify-center w-full">
+                            <Loader2 className="w-4 h-4 text-[#6B7B3F] animate-spin mr-2" />
+                            <span className="text-slate-500">Fetching advice...</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {formatAdviceText(getPreventionText(), true)}
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => {
                           if (!scanResult) return;
-                          const preventionText = getPreventionText();
-                          try {
-                            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-                              window.speechSynthesis.cancel();
-                              const utter = new SpeechSynthesisUtterance(preventionText);
+                          
+                          if (isPlayingPrevention) {
+                            // Stop audio
+                            window.speechSynthesis.cancel();
+                            setIsPlayingPrevention(false);
+                          } else {
+                            // Play audio
+                            const preventionText = getPreventionText();
+                            try {
+                              if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                                window.speechSynthesis.cancel();
+                                const utter = new SpeechSynthesisUtterance(preventionText);
 
-                              const langCode = getLanguageCode();
-                              utter.lang = langCode;
+                                const langCode = getLanguageCode();
+                                utter.lang = langCode;
 
-                              if (locale === 'mr') {
-                                utter.rate = 0.7;
-                              } else if (locale === 'hi') {
-                                utter.rate = 0.85;
-                              } else {
-                                utter.rate = 1.0;
-                              }
-
-                              utter.pitch = 1.0;
-                              utter.volume = 1.0;
-
-                              const applyBestVoiceAndSpeak = () => {
-                                const voice = getBestVoiceForLanguage(langCode);
-                                if (voice) {
-                                  utter.voice = voice;
+                                if (locale === 'mr') {
+                                  utter.rate = 0.7;
+                                } else if (locale === 'hi') {
+                                  utter.rate = 0.85;
+                                } else {
+                                  utter.rate = 1.0;
                                 }
-                                window.speechSynthesis.speak(utter);
-                              };
 
-                              if (window.speechSynthesis.getVoices().length === 0) {
-                                window.speechSynthesis.onvoiceschanged = () => applyBestVoiceAndSpeak();
-                              } else {
-                                applyBestVoiceAndSpeak();
+                                utter.pitch = 1.0;
+                                utter.volume = 1.0;
+
+                                utter.onend = () => {
+                                  setIsPlayingPrevention(false);
+                                };
+
+                                const applyBestVoiceAndSpeak = () => {
+                                  const voice = getBestVoiceForLanguage(langCode);
+                                  if (voice) {
+                                    utter.voice = voice;
+                                  }
+                                  setIsPlayingPrevention(true);
+                                  window.speechSynthesis.speak(utter);
+                                };
+
+                                if (window.speechSynthesis.getVoices().length === 0) {
+                                  window.speechSynthesis.onvoiceschanged = () => applyBestVoiceAndSpeak();
+                                } else {
+                                  applyBestVoiceAndSpeak();
+                                }
                               }
+                            } catch (err) {
+                              console.error('Failed to play speech:', err);
+                              setIsPlayingPrevention(false);
                             }
-                          } catch (err) {
-                            console.error('Failed to play speech:', err);
                           }
                         }}
-                        className="w-full bg-[#6B7B3F] hover:bg-[#5A6A35] text-white rounded-xl p-2.5 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                        className={`w-full ${isPlayingPrevention ? 'bg-[#5A6A35] hover:bg-[#4A5A25]' : 'bg-[#6B7B3F] hover:bg-[#5A6A35]'} text-white rounded-xl p-2.5 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]`}
                       >
                         <Volume2 className="w-4 h-4" strokeWidth={2.5} />
-                        <span>{t('results.playPreventionAdvice', 'Play Audio')}</span>
+                        <span>{isPlayingPrevention ? t('results.stopAudio', 'Stop Audio') : t('results.playPreventionAdvice', 'Play Audio')}</span>
                       </button>
                     </div>
                   )}

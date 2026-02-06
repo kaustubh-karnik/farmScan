@@ -63,6 +63,7 @@
     "save": "सहेजें",
     "playTreatmentAdvice": "ऑडियो सुनें",
     "playPreventionAdvice": "ऑडियो सुनें",
+    "stopAudio": "ऑडियो बंद करें",
     "treatmentAdvice": "उपचार सलाह"
   },
   "diseases": {
