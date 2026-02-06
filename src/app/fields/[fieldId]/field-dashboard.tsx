@@ -415,7 +415,7 @@ export default function FieldDashboard({
                                 <Navigation className="w-5 h-5 text-sky-700" strokeWidth={2} />
                             </div>
                             <h2 className="text-base font-semibold text-stone-800">
-                                {t("fieldDetail.guideToField", "Navigate to Field")}
+                                {t("fieldDetail.guideToField", "Navigate to Field (To be Implemented)")}
                             </h2>
                         </div>
                         <FieldGuidance
