@@ -21,11 +21,11 @@ export async function POST(
     context: { params: Promise<{ fieldId: string }> }
 ) {
     try {
-        const apiKey = process.env.NEXT_PUBLIC_GEMINI_KEY;
+        const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         if (!apiKey) {
-            console.warn("NEXT_PUBLIC_GEMINI_KEY is missing in environment variables.");
+            console.warn("GEMINI_API_KEY is missing in environment variables.");
             return NextResponse.json(
-                { error: "AI configuration missing. Please add NEXT_PUBLIC_GEMINI_KEY." },
+                { error: "AI configuration missing. Please add GEMINI_API_KEY." },
                 { status: 500 }
             );
         }
